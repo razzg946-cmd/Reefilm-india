@@ -5,14 +5,14 @@
 --           Optimized Indexes, and Admin Auth Policies.
 -- =======================================================================
 
--- Enable UUID extension
+-- Enable UUID extension (kept for backward compatibility, but we prefer gen_random_uuid)
 create extension if not exists "uuid-ossp";
 
 -- ==========================================
 -- 1. CATEGORIES TABLE
 -- ==========================================
 create table if not exists public.categories (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     name text not null unique,
     slug text not null unique,
     description text,
@@ -20,19 +20,11 @@ create table if not exists public.categories (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
-alter table public.categories enable row level security;
-
--- Public Select Policy
-create policy "Allow public read access to categories" 
-on public.categories for select 
-using (true);
-
 -- ==========================================
 -- 2. PRODUCTS TABLE
 -- ==========================================
 create table if not exists public.products (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     name text not null,
     slug text not null unique,
     category_id uuid references public.categories(id) on delete set null,
@@ -49,19 +41,11 @@ create table if not exists public.products (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
-alter table public.products enable row level security;
-
--- Public Select Policy
-create policy "Allow public read access to active products" 
-on public.products for select 
-using (is_active = true);
-
 -- ==========================================
 -- 3. TESTIMONIALS TABLE
 -- ==========================================
 create table if not exists public.testimonials (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     name text not null,
     designation text not null,
     company text not null,
@@ -72,19 +56,11 @@ create table if not exists public.testimonials (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
-alter table public.testimonials enable row level security;
-
--- Public Select Policy
-create policy "Allow public read access to testimonials" 
-on public.testimonials for select 
-using (true);
-
 -- ==========================================
 -- 4. CONTACTS TABLE
 -- ==========================================
 create table if not exists public.contacts (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     full_name text not null,
     company text,
     phone text not null,
@@ -98,19 +74,11 @@ create table if not exists public.contacts (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
-alter table public.contacts enable row level security;
-
--- Anyone can insert a contact inquiry
-create policy "Allow public insert to contacts" 
-on public.contacts for insert 
-with check (true);
-
 -- ==========================================
 -- 5. QUOTE_REQUESTS TABLE
 -- ==========================================
 create table if not exists public.quote_requests (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     quote_id text unique not null,
     full_name text not null,
     company text,
@@ -135,19 +103,11 @@ create table if not exists public.quote_requests (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
-alter table public.quote_requests enable row level security;
-
--- Anyone can submit a quote request
-create policy "Allow public insert to quote_requests" 
-on public.quote_requests for insert 
-with check (true);
-
 -- ==========================================
 -- 6. GALLERY & PROJECT_IMAGES TABLES
 -- ==========================================
 create table if not exists public.gallery (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     title text not null,
     category text not null,
     image_url text not null,
@@ -160,32 +120,19 @@ create table if not exists public.gallery (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.gallery enable row level security;
-
-create policy "Allow public read access to gallery" 
-on public.gallery for select 
-using (true);
-
--- Project Images for Carousel/Detailed view
 create table if not exists public.project_images (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     gallery_id uuid references public.gallery(id) on delete cascade,
     image_url text not null,
     caption text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.project_images enable row level security;
-
-create policy "Allow public read access to project_images" 
-on public.project_images for select 
-using (true);
-
 -- ==========================================
 -- 7. BLOGS TABLE
 -- ==========================================
 create table if not exists public.blogs (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     title text not null,
     slug text not null unique,
     excerpt text not null,
@@ -201,17 +148,11 @@ create table if not exists public.blogs (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.blogs enable row level security;
-
-create policy "Allow public read access to published blogs" 
-on public.blogs for select 
-using (is_published = true);
-
 -- ==========================================
 -- 8. DOWNLOADS TABLE (Resources Catalog)
 -- ==========================================
 create table if not exists public.downloads (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     title text not null,
     category text not null,
     file_size text not null,
@@ -221,34 +162,22 @@ create table if not exists public.downloads (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.downloads enable row level security;
-
-create policy "Allow public read access to downloads catalog" 
-on public.downloads for select 
-using (true);
-
 -- ==========================================
 -- 9. NEWSLETTER TABLE
 -- ==========================================
 create table if not exists public.newsletter (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     email text not null unique,
     is_active boolean default true not null,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.newsletter enable row level security;
-
-create policy "Allow public subscription" 
-on public.newsletter for insert 
-with check (true);
-
 -- ==========================================
 -- 10. ADMINS TABLE
 -- ==========================================
 create table if not exists public.admins (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     email text not null unique,
     password_hash text not null,
     role text default 'Editor' not null check (role in ('SuperAdmin', 'Editor', 'Viewer')),
@@ -257,34 +186,21 @@ create table if not exists public.admins (
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.admins enable row level security;
-
--- Only authenticated admins can read admin users
-create policy "Admins are read protected" 
-on public.admins for select 
-using (auth.role() = 'authenticated');
-
 -- ==========================================
 -- 11. SETTINGS TABLE
 -- ==========================================
 create table if not exists public.settings (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     key text not null unique,
     value jsonb not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.settings enable row level security;
-
-create policy "Allow public read to site settings" 
-on public.settings for select 
-using (true);
-
 -- ==========================================
 -- 12. ACTIVITY_LOGS TABLE
 -- ==========================================
 create table if not exists public.activity_logs (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     admin_id uuid references public.admins(id) on delete set null,
     action text not null,
     entity_type text not null,
@@ -294,10 +210,8 @@ create table if not exists public.activity_logs (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.activity_logs enable row level security;
-
 -- =======================================================================
--- SYSTEM ADMINISTRATIVE TRIDGERS & FUNCTIONS
+-- SYSTEM ADMINISTRATIVE TRIGGERS & FUNCTIONS
 -- =======================================================================
 
 -- Auto updated_at Trigger Function
@@ -309,33 +223,187 @@ begin
 end;
 $$ language plpgsql;
 
--- Apply updated_at Triggers
-create trigger set_categories_updated_at before update on public.categories for each row execute procedure public.handle_updated_at();
-create trigger set_products_updated_at before update on public.products for each row execute procedure public.handle_updated_at();
-create trigger set_testimonials_updated_at before update on public.testimonials for each row execute procedure public.handle_updated_at();
-create trigger set_contacts_updated_at before update on public.contacts for each row execute procedure public.handle_updated_at();
-create trigger set_quote_requests_updated_at before update on public.quote_requests for each row execute procedure public.handle_updated_at();
-create trigger set_gallery_updated_at before update on public.gallery for each row execute procedure public.handle_updated_at();
-create trigger set_blogs_updated_at before update on public.blogs for each row execute procedure public.handle_updated_at();
-create trigger set_downloads_updated_at before update on public.downloads for each row execute procedure public.handle_updated_at();
-create trigger set_newsletter_updated_at before update on public.newsletter for each row execute procedure public.handle_updated_at();
-create trigger set_admins_updated_at before update on public.admins for each row execute procedure public.handle_updated_at();
+-- Apply updated_at Triggers (Idempotent: Drop before Create)
+drop trigger if exists set_categories_updated_at on public.categories;
+create trigger set_categories_updated_at before update on public.categories for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_products_updated_at on public.products;
+create trigger set_products_updated_at before update on public.products for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_testimonials_updated_at on public.testimonials;
+create trigger set_testimonials_updated_at before update on public.testimonials for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_contacts_updated_at on public.contacts;
+create trigger set_contacts_updated_at before update on public.contacts for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_quote_requests_updated_at on public.quote_requests;
+create trigger set_quote_requests_updated_at before update on public.quote_requests for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_gallery_updated_at on public.gallery;
+create trigger set_gallery_updated_at before update on public.gallery for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_blogs_updated_at on public.blogs;
+create trigger set_blogs_updated_at before update on public.blogs for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_downloads_updated_at on public.downloads;
+create trigger set_downloads_updated_at before update on public.downloads for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_newsletter_updated_at on public.newsletter;
+create trigger set_newsletter_updated_at before update on public.newsletter for each row execute function public.handle_updated_at();
+
+drop trigger if exists set_admins_updated_at on public.admins;
+create trigger set_admins_updated_at before update on public.admins for each row execute function public.handle_updated_at();
+
 
 -- =======================================================================
--- ADMIN PRIVILEGED CRUD POLICIES (Super admin / Authenticated Roles)
+-- ENABLE ROW LEVEL SECURITY & DEFINE POLICIES (Idempotent: Drop before Create)
 -- =======================================================================
-create policy "Admins full rights on categories" on public.categories for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on products" on public.products for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on testimonials" on public.testimonials for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on contacts" on public.contacts for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on quote_requests" on public.quote_requests for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on gallery" on public.gallery for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on project_images" on public.project_images for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on blogs" on public.blogs for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on downloads" on public.downloads for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on newsletter" on public.newsletter for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on settings" on public.settings for all using (auth.role() = 'authenticated');
-create policy "Admins full rights on activity_logs" on public.activity_logs for all using (auth.role() = 'authenticated');
+
+alter table public.categories enable row level security;
+drop policy if exists "Allow public read access to categories" on public.categories;
+create policy "Allow public read access to categories" on public.categories for select using (true);
+drop policy if exists "Admins full rights on categories" on public.categories;
+create policy "Admins full rights on categories" on public.categories for all using (auth.uid() is not null);
+
+alter table public.products enable row level security;
+drop policy if exists "Allow public read access to active products" on public.products;
+create policy "Allow public read access to active products" on public.products for select using (is_active = true);
+drop policy if exists "Admins full rights on products" on public.products;
+create policy "Admins full rights on products" on public.products for all using (auth.uid() is not null);
+
+alter table public.testimonials enable row level security;
+drop policy if exists "Allow public read access to testimonials" on public.testimonials;
+create policy "Allow public read access to testimonials" on public.testimonials for select using (true);
+drop policy if exists "Admins full rights on testimonials" on public.testimonials;
+create policy "Admins full rights on testimonials" on public.testimonials for all using (auth.uid() is not null);
+
+alter table public.contacts enable row level security;
+drop policy if exists "Allow public insert to contacts" on public.contacts;
+create policy "Allow public insert to contacts" on public.contacts for insert with check (true);
+drop policy if exists "Admins full rights on contacts" on public.contacts;
+create policy "Admins full rights on contacts" on public.contacts for all using (auth.uid() is not null);
+
+alter table public.quote_requests enable row level security;
+drop policy if exists "Allow public insert to quote_requests" on public.quote_requests;
+create policy "Allow public insert to quote_requests" on public.quote_requests for insert with check (true);
+drop policy if exists "Admins full rights on quote_requests" on public.quote_requests;
+create policy "Admins full rights on quote_requests" on public.quote_requests for all using (auth.uid() is not null);
+
+alter table public.gallery enable row level security;
+drop policy if exists "Allow public read access to gallery" on public.gallery;
+create policy "Allow public read access to gallery" on public.gallery for select using (true);
+drop policy if exists "Admins full rights on gallery" on public.gallery;
+create policy "Admins full rights on gallery" on public.gallery for all using (auth.uid() is not null);
+
+alter table public.project_images enable row level security;
+drop policy if exists "Allow public read access to project_images" on public.project_images;
+create policy "Allow public read access to project_images" on public.project_images for select using (true);
+drop policy if exists "Admins full rights on project_images" on public.project_images;
+create policy "Admins full rights on project_images" on public.project_images for all using (auth.uid() is not null);
+
+alter table public.blogs enable row level security;
+drop policy if exists "Allow public read access to published blogs" on public.blogs;
+create policy "Allow public read access to published blogs" on public.blogs for select using (is_published = true);
+drop policy if exists "Admins full rights on blogs" on public.blogs;
+create policy "Admins full rights on blogs" on public.blogs for all using (auth.uid() is not null);
+
+alter table public.downloads enable row level security;
+drop policy if exists "Allow public read access to downloads catalog" on public.downloads;
+create policy "Allow public read access to downloads catalog" on public.downloads for select using (true);
+drop policy if exists "Admins full rights on downloads" on public.downloads;
+create policy "Admins full rights on downloads" on public.downloads for all using (auth.uid() is not null);
+
+alter table public.newsletter enable row level security;
+drop policy if exists "Allow public subscription" on public.newsletter;
+create policy "Allow public subscription" on public.newsletter for insert with check (true);
+drop policy if exists "Admins full rights on newsletter" on public.newsletter;
+create policy "Admins full rights on newsletter" on public.newsletter for all using (auth.uid() is not null);
+
+alter table public.admins enable row level security;
+drop policy if exists "Admins are read protected" on public.admins;
+create policy "Admins are read protected" on public.admins for select using (auth.uid() is not null);
+
+alter table public.settings enable row level security;
+drop policy if exists "Allow public read to site settings" on public.settings;
+create policy "Allow public read to site settings" on public.settings for select using (true);
+drop policy if exists "Admins full rights on settings" on public.settings;
+create policy "Admins full rights on settings" on public.settings for all using (auth.uid() is not null);
+
+alter table public.activity_logs enable row level security;
+drop policy if exists "Admins full rights on activity_logs" on public.activity_logs;
+create policy "Admins full rights on activity_logs" on public.activity_logs for all using (auth.uid() is not null);
+
+
+-- =======================================================================
+-- STORAGE POLICY DEFINITIONS (Safe dynamic EXECUTE inside PL/pgSQL)
+-- =======================================================================
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'storage' AND c.relname = 'objects') THEN
+    
+    -- products policies
+    EXECUTE $step$DROP POLICY IF EXISTS "products_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "products_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'products')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "products_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "products_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'products')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "products_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "products_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'products') WITH CHECK (bucket_id = 'products')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "products_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "products_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'products')$step$;
+
+    -- gallery policies
+    EXECUTE $step$DROP POLICY IF EXISTS "gallery_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "gallery_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'gallery')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "gallery_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "gallery_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'gallery')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "gallery_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "gallery_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'gallery') WITH CHECK (bucket_id = 'gallery')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "gallery_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "gallery_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'gallery')$step$;
+
+    -- videos policies
+    EXECUTE $step$DROP POLICY IF EXISTS "videos_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "videos_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'videos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "videos_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "videos_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'videos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "videos_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "videos_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'videos') WITH CHECK (bucket_id = 'videos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "videos_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "videos_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'videos')$step$;
+
+    -- documents policies
+    EXECUTE $step$DROP POLICY IF EXISTS "documents_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "documents_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'documents')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "documents_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "documents_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documents')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "documents_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "documents_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'documents') WITH CHECK (bucket_id = 'documents')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "documents_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "documents_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'documents')$step$;
+
+    -- logos policies
+    EXECUTE $step$DROP POLICY IF EXISTS "logos_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "logos_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'logos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "logos_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "logos_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'logos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "logos_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "logos_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'logos') WITH CHECK (bucket_id = 'logos')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "logos_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "logos_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'logos')$step$;
+
+    -- media policies
+    EXECUTE $step$DROP POLICY IF EXISTS "media_select_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "media_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'media')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "media_insert_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "media_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "media_update_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "media_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'media') WITH CHECK (bucket_id = 'media')$step$;
+    EXECUTE $step$DROP POLICY IF EXISTS "media_delete_policy" ON storage.objects$step$;
+    EXECUTE $step$CREATE POLICY "media_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'media')$step$;
+
+  END IF;
+END $$;
+
 
 -- =======================================================================
 -- SEED DATA
