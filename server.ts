@@ -1,14 +1,36 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import nodemailer from "nodemailer";
+import { createClient } from "@supabase/supabase-js";
+import pg from "pg";
 
 const app = express();
 const PORT = 3000;
 const DB_FILE = path.join(process.cwd(), "leads-db.json");
 const ADMIN_DB_FILE = path.join(process.cwd(), "admin-db.json");
+
+// Helper to initialize and retrieve Supabase client safely
+function getSupabaseClient() {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const key = (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
+  const isValidUrl = url.startsWith("http://") || url.startsWith("https://");
+  const isPlaceholder = url.includes("your-") || url.includes("placeholder") || key.includes("your-") || key.includes("placeholder");
+  
+  if (url && key && isValidUrl && !isPlaceholder) {
+    try {
+      return createClient(url, key);
+    } catch (e) {
+      console.error("Failed to initialize Supabase client in server:", e);
+    }
+  }
+  return null;
+}
 
 // Define type schemas for secure administrative storage
 interface ServerAdminUser {
@@ -237,6 +259,965 @@ function getTransporter() {
 
 // --- API ROUTES ---
 
+// --- ADMIN SYSTEM SETUP ENDPOINTS ---
+
+// Helpers for dynamic configuration of .env
+function updateEnvFile(updates: Record<string, string>) {
+  const envPath = path.join(process.cwd(), ".env");
+  let lines: string[] = [];
+  if (fs.existsSync(envPath)) {
+    lines = fs.readFileSync(envPath, "utf-8").split("\n");
+  }
+  
+  for (const [key, val] of Object.entries(updates)) {
+    // Set in-memory environment variable immediately
+    process.env[key] = val;
+    
+    // Set matching aliases
+    if (key === "SUPABASE_URL") {
+      process.env.VITE_SUPABASE_URL = val;
+      process.env.NEXT_PUBLIC_SUPABASE_URL = val;
+    }
+    if (key === "SUPABASE_ANON_KEY") {
+      process.env.VITE_SUPABASE_ANON_KEY = val;
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = val;
+    }
+
+    let found = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith(`${key}=`)) {
+        lines[i] = `${key}=${val}`;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      lines.push(`${key}=${val}`);
+    }
+  }
+
+  // Double check and write VITE_ variants for security & compiler safety
+  if (updates.SUPABASE_URL) {
+    if (!lines.some(l => l.startsWith("VITE_SUPABASE_URL="))) {
+      lines.push(`VITE_SUPABASE_URL=${updates.SUPABASE_URL}`);
+    } else {
+      lines = lines.map(l => l.startsWith("VITE_SUPABASE_URL=") ? `VITE_SUPABASE_URL=${updates.SUPABASE_URL}` : l);
+    }
+    if (!lines.some(l => l.startsWith("NEXT_PUBLIC_SUPABASE_URL="))) {
+      lines.push(`NEXT_PUBLIC_SUPABASE_URL=${updates.SUPABASE_URL}`);
+    } else {
+      lines = lines.map(l => l.startsWith("NEXT_PUBLIC_SUPABASE_URL=") ? `NEXT_PUBLIC_SUPABASE_URL=${updates.SUPABASE_URL}` : l);
+    }
+  }
+  if (updates.SUPABASE_ANON_KEY) {
+    if (!lines.some(l => l.startsWith("VITE_SUPABASE_ANON_KEY="))) {
+      lines.push(`VITE_SUPABASE_ANON_KEY=${updates.SUPABASE_ANON_KEY}`);
+    } else {
+      lines = lines.map(l => l.startsWith("VITE_SUPABASE_ANON_KEY=") ? `VITE_SUPABASE_ANON_KEY=${updates.SUPABASE_ANON_KEY}` : l);
+    }
+    if (!lines.some(l => l.startsWith("NEXT_PUBLIC_SUPABASE_ANON_KEY="))) {
+      lines.push(`NEXT_PUBLIC_SUPABASE_ANON_KEY=${updates.SUPABASE_ANON_KEY}`);
+    } else {
+      lines = lines.map(l => l.startsWith("NEXT_PUBLIC_SUPABASE_ANON_KEY=") ? `NEXT_PUBLIC_SUPABASE_ANON_KEY=${updates.SUPABASE_ANON_KEY}` : l);
+    }
+  }
+
+  fs.writeFileSync(envPath, lines.join("\n"), "utf-8");
+}
+
+// Get the Admin / Service Role Supabase client
+function getSupabaseAdminClient() {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (url && key && url.startsWith("http")) {
+    try {
+      return createClient(url, key, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      });
+    } catch (e) {
+      console.error("Failed to initialize Supabase admin client:", e);
+    }
+  }
+  return null;
+}
+
+// Raw SQL migration script for all tables
+const CMS_MIGRATION_SQL = `
+-- 1. Create table 'categories'
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Create table 'products'
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+  tagline TEXT,
+  description TEXT,
+  features TEXT[] DEFAULT '{}',
+  benefits TEXT[] DEFAULT '{}',
+  specifications JSONB DEFAULT '{}'::jsonb,
+  installation TEXT,
+  maintenance TEXT,
+  image TEXT,
+  "brochureUrl" TEXT,
+  series TEXT,
+  "videoUrl" TEXT,
+  "displayOrder" INT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. Create table 'product_images'
+CREATE TABLE IF NOT EXISTS product_images (
+  id TEXT PRIMARY KEY,
+  product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  alt_text TEXT,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. Create table 'product_documents'
+CREATE TABLE IF NOT EXISTS product_documents (
+  id TEXT PRIMARY KEY,
+  product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_size TEXT,
+  document_type TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 5. Create table 'gallery'
+CREATE TABLE IF NOT EXISTS gallery (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  "imageUrl" TEXT NOT NULL,
+  "videoUrl" TEXT,
+  location TEXT,
+  description TEXT,
+  specs JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 6. Create table 'blogs'
+CREATE TABLE IF NOT EXISTS blogs (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  excerpt TEXT,
+  content TEXT,
+  category TEXT,
+  tags TEXT[] DEFAULT '{}',
+  "publishedAt" TEXT,
+  "readTime" TEXT,
+  author TEXT,
+  image TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 7. Create table 'downloads'
+CREATE TABLE IF NOT EXISTS downloads (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT,
+  "fileSize" TEXT,
+  "downloadCount" INT DEFAULT 0,
+  "fileUrl" TEXT,
+  "docCode" TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 8. Create table 'team_members'
+CREATE TABLE IF NOT EXISTS team_members (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  position TEXT,
+  department TEXT,
+  initials TEXT,
+  bio TEXT,
+  email TEXT,
+  image_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 9. Create table 'contact_leads'
+CREATE TABLE IF NOT EXISTS contact_leads (
+  id TEXT PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  whatsapp TEXT,
+  company TEXT,
+  subject TEXT,
+  message TEXT,
+  status TEXT DEFAULT 'New',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 10. Create table 'quote_requests'
+CREATE TABLE IF NOT EXISTS quote_requests (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT REFERENCES contact_leads(id) ON DELETE SET NULL,
+  product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+  pixel_pitch TEXT,
+  screen_size TEXT,
+  quantity INT DEFAULT 1,
+  target_budget TEXT,
+  timeline TEXT,
+  status TEXT DEFAULT 'Pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 11. Create table 'website_settings'
+CREATE TABLE IF NOT EXISTS website_settings (
+  id TEXT PRIMARY KEY,
+  key TEXT UNIQUE NOT NULL,
+  value JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 12. Create table 'admin_users'
+CREATE TABLE IF NOT EXISTS admin_users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  "passwordHash" TEXT NOT NULL,
+  role TEXT DEFAULT 'Editor',
+  "createdAt" TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 13. Create table 'media_library'
+CREATE TABLE IF NOT EXISTS media_library (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size TEXT,
+  bucket_name TEXT,
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 14. Create table 'projects' (backward-compatible)
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  location TEXT,
+  client TEXT,
+  timeline TEXT,
+  description TEXT,
+  "techUsed" TEXT[] DEFAULT '{}',
+  "beforeImage" TEXT,
+  "afterImage" TEXT,
+  "installationSize" TEXT,
+  "projectHighlights" TEXT[] DEFAULT '{}',
+  "customerBenefits" TEXT[] DEFAULT '{}',
+  review JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 15. Create table 'testimonials' (backward-compatible)
+CREATE TABLE IF NOT EXISTS testimonials (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  designation TEXT,
+  company TEXT,
+  text TEXT,
+  rating INT DEFAULT 5,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 16. Create table 'team' (backward-compatible)
+CREATE TABLE IF NOT EXISTS team (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  position TEXT,
+  department TEXT,
+  initials TEXT,
+  bio TEXT,
+  email TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 17. Create table 'settings' (backward-compatible)
+CREATE TABLE IF NOT EXISTS settings (
+  id TEXT PRIMARY KEY,
+  "companyName" TEXT,
+  tagline TEXT,
+  email TEXT,
+  phone TEXT,
+  whatsapp TEXT,
+  address TEXT,
+  hours TEXT,
+  "logoUrl" TEXT,
+  "footerText" TEXT,
+  "homeHeroBanner" TEXT,
+  "homeHeroHeadline" TEXT,
+  "homeHeroSubtitle" TEXT,
+  "homeHeroCta1Text" TEXT,
+  "homeHeroCta1Tab" TEXT,
+  "homeHeroCta2Text" TEXT,
+  "homeHeroCta2Tab" TEXT,
+  "homeHeroImage" TEXT,
+  "homeHeroVideo" TEXT,
+  "aboutHeaderTitle" TEXT,
+  "aboutHeaderSubtitle" TEXT,
+  "aboutHeaderIntro" TEXT,
+  "aboutChinaTitle" TEXT,
+  "aboutChinaSub" TEXT,
+  "aboutChinaText" TEXT,
+  "aboutChinaFounder" TEXT,
+  "aboutChinaWebsite" TEXT,
+  "aboutChinaHeadquarters" TEXT,
+  "aboutChinaBusiness" TEXT,
+  "aboutTeamTitle" TEXT,
+  "aboutTeamSub" TEXT,
+  "aboutTeamDesc" TEXT,
+  "aboutFactoryTitle" TEXT,
+  "aboutFactorySub" TEXT,
+  "aboutFactoryDesc1" TEXT,
+  "aboutFactoryDesc2" TEXT,
+  "aboutServicesTitle" TEXT,
+  "aboutServicesSub" TEXT,
+  "aboutServicesDesc" TEXT,
+  "aboutIndiaTitle" TEXT,
+  "aboutIndiaSub" TEXT,
+  "aboutIndiaDesc1" TEXT,
+  "aboutIndiaDesc2" TEXT,
+  "aboutIndiaSLA1" TEXT,
+  "aboutIndiaSLA2" TEXT,
+  "aboutIndiaSLA3" TEXT,
+  "aboutCtaTitle" TEXT,
+  "aboutCtaDesc" TEXT,
+  "factoryAddress" TEXT,
+  "googleMapEmbed" TEXT,
+  "facebookUrl" TEXT,
+  "linkedinUrl" TEXT,
+  "youtubeUrl" TEXT,
+  "instagramUrl" TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 18. Create table 'leads' (backward-compatible)
+CREATE TABLE IF NOT EXISTS leads (
+  id TEXT PRIMARY KEY,
+  "fullName" TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  whatsapp TEXT,
+  company TEXT,
+  role TEXT,
+  "productOfInterest" TEXT,
+  "pixelPitchPreference" TEXT,
+  "glassSize" TEXT,
+  "screenSize" TEXT,
+  quantity TEXT,
+  city TEXT,
+  state TEXT,
+  country TEXT,
+  "projectLocation" TEXT,
+  timeline TEXT,
+  "budgetRange" TEXT,
+  "specialRequirements" TEXT,
+  status TEXT DEFAULT 'New',
+  "createdAt" TEXT NOT NULL,
+  "drawingName" TEXT,
+  "drawingData" TEXT,
+  "imageName" TEXT,
+  "imageData" TEXT,
+  "attachmentName" TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Auto-update triggers
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = NOW();
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS trg_categories_updated_at ON categories;
+CREATE TRIGGER trg_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_products_updated_at ON products;
+CREATE TRIGGER trg_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_product_images_updated_at ON product_images;
+CREATE TRIGGER trg_product_images_updated_at BEFORE UPDATE ON product_images FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_product_documents_updated_at ON product_documents;
+CREATE TRIGGER trg_product_documents_updated_at BEFORE UPDATE ON product_documents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_gallery_updated_at ON gallery;
+CREATE TRIGGER trg_gallery_updated_at BEFORE UPDATE ON gallery FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_blogs_updated_at ON blogs;
+CREATE TRIGGER trg_blogs_updated_at BEFORE UPDATE ON blogs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_downloads_updated_at ON downloads;
+CREATE TRIGGER trg_downloads_updated_at BEFORE UPDATE ON downloads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_team_members_updated_at ON team_members;
+CREATE TRIGGER trg_team_members_updated_at BEFORE UPDATE ON team_members FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_contact_leads_updated_at ON contact_leads;
+CREATE TRIGGER trg_contact_leads_updated_at BEFORE UPDATE ON contact_leads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_quote_requests_updated_at ON quote_requests;
+CREATE TRIGGER trg_quote_requests_updated_at BEFORE UPDATE ON quote_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_website_settings_updated_at ON website_settings;
+CREATE TRIGGER trg_website_settings_updated_at BEFORE UPDATE ON website_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_admin_users_updated_at ON admin_users;
+CREATE TRIGGER trg_admin_users_updated_at BEFORE UPDATE ON admin_users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_media_library_updated_at ON media_library;
+CREATE TRIGGER trg_media_library_updated_at BEFORE UPDATE ON media_library FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
+CREATE TRIGGER trg_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_testimonials_updated_at ON testimonials;
+CREATE TRIGGER trg_testimonials_updated_at BEFORE UPDATE ON testimonials FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_team_updated_at ON team;
+CREATE TRIGGER trg_team_updated_at BEFORE UPDATE ON team FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_settings_updated_at ON settings;
+CREATE TRIGGER trg_settings_updated_at BEFORE UPDATE ON settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_leads_updated_at ON leads;
+CREATE TRIGGER trg_leads_updated_at BEFORE UPDATE ON leads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_documents_product_id ON product_documents(product_id);
+CREATE INDEX IF NOT EXISTS idx_quote_requests_lead_id ON quote_requests(lead_id);
+CREATE INDEX IF NOT EXISTS idx_quote_requests_product_id ON quote_requests(product_id);
+CREATE INDEX IF NOT EXISTS idx_media_library_type ON media_library(file_type);
+
+-- Row Level Security
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blogs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE downloads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE website_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE media_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+
+-- Permissive policies for standard CMS operations
+DROP POLICY IF EXISTS select_categories ON categories;
+CREATE POLICY select_categories ON categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_categories ON categories;
+CREATE POLICY write_categories ON categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_products ON products;
+CREATE POLICY select_products ON products FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_products ON products;
+CREATE POLICY write_products ON products FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_product_images ON product_images;
+CREATE POLICY select_product_images ON product_images FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_product_images ON product_images;
+CREATE POLICY write_product_images ON product_images FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_product_documents ON product_documents;
+CREATE POLICY select_product_documents ON product_documents FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_product_documents ON product_documents;
+CREATE POLICY write_product_documents ON product_documents FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_gallery ON gallery;
+CREATE POLICY select_gallery ON gallery FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_gallery ON gallery;
+CREATE POLICY write_gallery ON gallery FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_blogs ON blogs;
+CREATE POLICY select_blogs ON blogs FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_blogs ON blogs;
+CREATE POLICY write_blogs ON blogs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_downloads ON downloads;
+CREATE POLICY select_downloads ON downloads FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_downloads ON downloads;
+CREATE POLICY write_downloads ON downloads FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_team_members ON team_members;
+CREATE POLICY select_team_members ON team_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_team_members ON team_members;
+CREATE POLICY write_team_members ON team_members FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_contact_leads ON contact_leads;
+CREATE POLICY select_contact_leads ON contact_leads FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_contact_leads ON contact_leads;
+CREATE POLICY write_contact_leads ON contact_leads FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_quote_requests ON quote_requests;
+CREATE POLICY select_quote_requests ON quote_requests FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_quote_requests ON quote_requests;
+CREATE POLICY write_quote_requests ON quote_requests FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_website_settings ON website_settings;
+CREATE POLICY select_website_settings ON website_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_website_settings ON website_settings;
+CREATE POLICY write_website_settings ON website_settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_admin_users ON admin_users;
+CREATE POLICY select_admin_users ON admin_users FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_admin_users ON admin_users;
+CREATE POLICY write_admin_users ON admin_users FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_media_library ON media_library;
+CREATE POLICY select_media_library ON media_library FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_media_library ON media_library;
+CREATE POLICY write_media_library ON media_library FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_projects ON projects;
+CREATE POLICY select_projects ON projects FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_projects ON projects;
+CREATE POLICY write_projects ON projects FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_testimonials ON testimonials;
+CREATE POLICY select_testimonials ON testimonials FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_testimonials ON testimonials;
+CREATE POLICY write_testimonials ON testimonials FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_team ON team;
+CREATE POLICY select_team ON team FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_team ON team;
+CREATE POLICY write_team ON team FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_settings ON settings;
+CREATE POLICY select_settings ON settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_settings ON settings;
+CREATE POLICY write_settings ON settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS select_leads ON leads;
+CREATE POLICY select_leads ON leads FOR SELECT USING (true);
+DROP POLICY IF EXISTS write_leads ON leads;
+CREATE POLICY write_leads ON leads FOR ALL USING (true) WITH CHECK (true);
+
+-- Setup storage policies for our buckets if storage schema exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'storage' AND c.relname = 'objects') THEN
+    
+    -- products policies
+    DROP POLICY IF EXISTS "products_select_policy" ON storage.objects;
+    CREATE POLICY "products_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'products');
+    DROP POLICY IF EXISTS "products_insert_policy" ON storage.objects;
+    CREATE POLICY "products_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'products');
+    DROP POLICY IF EXISTS "products_update_policy" ON storage.objects;
+    CREATE POLICY "products_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'products') WITH CHECK (bucket_id = 'products');
+    DROP POLICY IF EXISTS "products_delete_policy" ON storage.objects;
+    CREATE POLICY "products_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'products');
+
+    -- gallery policies
+    DROP POLICY IF EXISTS "gallery_select_policy" ON storage.objects;
+    CREATE POLICY "gallery_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'gallery');
+    DROP POLICY IF EXISTS "gallery_insert_policy" ON storage.objects;
+    CREATE POLICY "gallery_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'gallery');
+    DROP POLICY IF EXISTS "gallery_update_policy" ON storage.objects;
+    CREATE POLICY "gallery_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'gallery') WITH CHECK (bucket_id = 'gallery');
+    DROP POLICY IF EXISTS "gallery_delete_policy" ON storage.objects;
+    CREATE POLICY "gallery_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'gallery');
+
+    -- videos policies
+    DROP POLICY IF EXISTS "videos_select_policy" ON storage.objects;
+    CREATE POLICY "videos_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'videos');
+    DROP POLICY IF EXISTS "videos_insert_policy" ON storage.objects;
+    CREATE POLICY "videos_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'videos');
+    DROP POLICY IF EXISTS "videos_update_policy" ON storage.objects;
+    CREATE POLICY "videos_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'videos') WITH CHECK (bucket_id = 'videos');
+    DROP POLICY IF EXISTS "videos_delete_policy" ON storage.objects;
+    CREATE POLICY "videos_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'videos');
+
+    -- documents policies
+    DROP POLICY IF EXISTS "documents_select_policy" ON storage.objects;
+    CREATE POLICY "documents_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
+    DROP POLICY IF EXISTS "documents_insert_policy" ON storage.objects;
+    CREATE POLICY "documents_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documents');
+    DROP POLICY IF EXISTS "documents_update_policy" ON storage.objects;
+    CREATE POLICY "documents_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'documents') WITH CHECK (bucket_id = 'documents');
+    DROP POLICY IF EXISTS "documents_delete_policy" ON storage.objects;
+    CREATE POLICY "documents_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'documents');
+
+    -- logos policies
+    DROP POLICY IF EXISTS "logos_select_policy" ON storage.objects;
+    CREATE POLICY "logos_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'logos');
+    DROP POLICY IF EXISTS "logos_insert_policy" ON storage.objects;
+    CREATE POLICY "logos_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'logos');
+    DROP POLICY IF EXISTS "logos_update_policy" ON storage.objects;
+    CREATE POLICY "logos_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'logos') WITH CHECK (bucket_id = 'logos');
+    DROP POLICY IF EXISTS "logos_delete_policy" ON storage.objects;
+    CREATE POLICY "logos_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'logos');
+
+    -- media policies
+    DROP POLICY IF EXISTS "media_select_policy" ON storage.objects;
+    CREATE POLICY "media_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'media');
+    DROP POLICY IF EXISTS "media_insert_policy" ON storage.objects;
+    CREATE POLICY "media_insert_policy" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media');
+    DROP POLICY IF EXISTS "media_update_policy" ON storage.objects;
+    CREATE POLICY "media_update_policy" ON storage.objects FOR UPDATE USING (bucket_id = 'media') WITH CHECK (bucket_id = 'media');
+    DROP POLICY IF EXISTS "media_delete_policy" ON storage.objects;
+    CREATE POLICY "media_delete_policy" ON storage.objects FOR DELETE USING (bucket_id = 'media');
+
+  END IF;
+END $$;
+`;
+
+// Helper to mask sensitive keys
+function maskKey(key: string): string {
+  if (!key) return "";
+  if (key.length <= 10) return "****";
+  return `${key.slice(0, 6)}...${key.slice(-4)}`;
+}
+
+// Endpoint to fetch current Supabase credentials
+app.get("/api/supabase-config", (req, res) => {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const key = (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
+  const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  const pgConn = (process.env.SUPABASE_PG_CONN_STRING || "").trim();
+  
+  const isValidUrl = url.startsWith("http://") || url.startsWith("https://");
+  const isPlaceholder = url.includes("your-") || url.includes("placeholder") || key.includes("your-") || key.includes("placeholder");
+  
+  res.json({
+    connected: !!(url && key && isValidUrl && !isPlaceholder),
+    supabaseUrl: url,
+    supabaseAnonKey: key,
+    supabaseServiceRoleKey: serviceKey ? maskKey(serviceKey) : "",
+    pgConnectionString: pgConn ? maskKey(pgConn) : ""
+  });
+});
+
+// Endpoint to test Supabase client connection
+app.post("/api/setup/test-connection", async (req, res) => {
+  const { url, anonKey } = req.body;
+  if (!url || !anonKey) {
+    return res.status(400).json({ error: "Supabase Project URL and Anon Key are required." });
+  }
+
+  const cleanUrl = url.trim();
+  const cleanKey = anonKey.trim();
+
+  if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+    return res.status(400).json({ error: "Invalid URL format. Must start with http:// or https://" });
+  }
+
+  try {
+    const tempClient = createClient(cleanUrl, cleanKey);
+    // Ping with a dummy request
+    const { error } = await tempClient.from("settings").select("id").limit(1);
+    
+    // We expect settings table error if DB not initialized yet, but connection itself is valid!
+    // A connection failure will throw network exception or specific invalid API key errors.
+    if (error && error.message.includes("Invalid API key")) {
+      return res.status(400).json({ error: `Connection failed: ${error.message}` });
+    }
+    
+    res.json({ success: true, message: "Tested Connection Successfully!" });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to establish a network connection to Supabase." });
+  }
+});
+
+// Endpoint to save Supabase connection variables
+app.post("/api/setup/save-config", (req, res) => {
+  const { url, anonKey, serviceRoleKey, pgConnectionString } = req.body;
+  if (!url || !anonKey) {
+    return res.status(400).json({ error: "Project URL and Publishable Anon Key are mandatory." });
+  }
+
+  try {
+    const updates: Record<string, string> = {
+      SUPABASE_URL: url.trim(),
+      SUPABASE_ANON_KEY: anonKey.trim()
+    };
+
+    if (serviceRoleKey) {
+      updates.SUPABASE_SERVICE_ROLE_KEY = serviceRoleKey.trim();
+    }
+    if (pgConnectionString) {
+      updates.SUPABASE_PG_CONN_STRING = pgConnectionString.trim();
+    }
+
+    updateEnvFile(updates);
+    res.json({ success: true, message: "Configuration variables saved and applied in memory successfully." });
+  } catch (err: any) {
+    res.status(500).json({ error: `Failed to save configuration: ${err.message}` });
+  }
+});
+
+// Endpoint to fetch overall installation and component status
+app.get("/api/setup/status", async (req, res) => {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const key = (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
+  const pgConn = (process.env.SUPABASE_PG_CONN_STRING || "").trim();
+  
+  const isConfigured = !!(url && key && url.startsWith("http") && !url.includes("placeholder"));
+  
+  if (!isConfigured) {
+    return res.json({
+      connected: false,
+      buckets: { products: "missing", gallery: "missing", videos: "missing", documents: "missing", logos: "missing", media: "missing" },
+      tables: {
+        products: false, product_images: false, product_documents: false, gallery: false, categories: false, blogs: false, downloads: false, team_members: false, contact_leads: false, quote_requests: false, website_settings: false, admin_users: false, media_library: false,
+        projects: false, testimonials: false, team: false, settings: false, leads: false
+      },
+      hasAdminUser: false,
+      sqlScript: CMS_MIGRATION_SQL
+    });
+  }
+
+  const status = {
+    connected: true,
+    buckets: { products: "missing", gallery: "missing", videos: "missing", documents: "missing", logos: "missing", media: "missing" },
+    tables: {
+      products: false, product_images: false, product_documents: false, gallery: false, categories: false, blogs: false, downloads: false, team_members: false, contact_leads: false, quote_requests: false, website_settings: false, admin_users: false, media_library: false,
+      projects: false, testimonials: false, team: false, settings: false, leads: false
+    },
+    hasAdminUser: false,
+    sqlScript: CMS_MIGRATION_SQL
+  };
+
+  const supabase = createClient(url, key);
+
+  // Check database tables via standard query
+  const tableNames = [
+    "products", "product_images", "product_documents", "gallery", "categories", "blogs", "downloads", "team_members", "contact_leads", "quote_requests", "website_settings", "admin_users", "media_library",
+    "projects", "testimonials", "team", "settings", "leads"
+  ];
+
+  for (const table of tableNames) {
+    try {
+      const { error } = await supabase.from(table).select("*").limit(1);
+      if (!error) {
+        (status.tables as any)[table] = true;
+      } else {
+        const msg = error.message || "";
+        const isMissing = (msg.includes("relation") && msg.includes("does not exist")) ||
+                          (msg.includes("Could not find") && msg.includes("schema cache"));
+        if (!isMissing) {
+          (status.tables as any)[table] = true;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  // Check if admin user exists in admin_users table
+  try {
+    const { data, error } = await supabase.from("admin_users").select("id").limit(1);
+    if (!error && data && data.length > 0) {
+      status.hasAdminUser = true;
+    }
+  } catch (e) {}
+
+  // Check Buckets
+  const adminClient = getSupabaseAdminClient() || supabase;
+  try {
+    const { data: buckets, error } = await adminClient.storage.listBuckets();
+    if (!error && buckets) {
+      for (const bucket of buckets) {
+        if (bucket.name in status.buckets) {
+          (status.buckets as any)[bucket.name] = "ready";
+        }
+      }
+    }
+  } catch (e) {}
+
+  res.json(status);
+});
+
+// Endpoint to automatically create buckets using Admin client
+app.post("/api/setup/create-buckets", async (req, res) => {
+  const adminClient = getSupabaseAdminClient();
+  if (!adminClient) {
+    return res.status(400).json({
+      error: "Service Role Key is required to programmatically create buckets. Please save the Service Role Key in Step 1 first, or create buckets manually in the Supabase Dashboard."
+    });
+  }
+
+  const bucketsToCreate = ["products", "gallery", "videos", "documents", "logos", "media"];
+  const results: Record<string, string> = {};
+
+  try {
+    for (const b of bucketsToCreate) {
+      const { error } = await adminClient.storage.createBucket(b, {
+        public: true,
+        fileSizeLimit: 52428800, // 50MB
+      });
+      
+      if (!error || error.message.includes("already exists")) {
+        results[b] = "success";
+      } else {
+        results[b] = `failed: ${error.message}`;
+      }
+    }
+    res.json({ success: true, results });
+  } catch (err: any) {
+    res.status(500).json({ error: `Bucket creation threw exception: ${err.message}` });
+  }
+});
+
+// Endpoint to initialize Database via pg Connection String
+app.post("/api/setup/initialize-database", async (req, res) => {
+  const pgConn = (process.env.SUPABASE_PG_CONN_STRING || "").trim();
+  if (!pgConn) {
+    return res.status(400).json({
+      error: "PostgreSQL Connection String is not configured. Please save it in Step 1, or execute the SQL script manually in the Supabase Dashboard SQL Editor."
+    });
+  }
+
+  const client = new pg.Client({
+    connectionString: pgConn,
+    ssl: { rejectUnauthorized: false } // Required for Supabase cloud hosts
+  });
+
+  try {
+    await client.connect();
+    await client.query(CMS_MIGRATION_SQL);
+    await client.end();
+    res.json({ success: true, message: "Database tables migrated and initialized successfully." });
+  } catch (err: any) {
+    try { await client.end(); } catch (e) {}
+    res.status(500).json({ error: `Database migration failed: ${err.message}` });
+  }
+});
+
+// Endpoint to register the primary admin user in both Auth and DB
+app.post("/api/setup/create-admin-user", async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "Username, email and password are required." });
+  }
+
+  const url = (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const anonKey = (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
+  
+  if (!url || !anonKey) {
+    return res.status(400).json({ error: "Supabase client is not configured yet." });
+  }
+
+  const adminClient = getSupabaseAdminClient();
+  const supabase = createClient(url, anonKey);
+
+  try {
+    let authUserId = "";
+
+    // 1. Create in Supabase Auth using Admin Client (bypassing email confirmation links)
+    if (adminClient) {
+      const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { username, role: "Administrator" }
+      });
+
+      if (authError) {
+        // If it fails because user already exists, try to fetch or log it
+        if (authError.message.includes("already registered")) {
+          // Continue to insert in DB in case it's missing there
+        } else {
+          return res.status(400).json({ error: `Auth Signup Error: ${authError.message}` });
+        }
+      } else if (authUser && authUser.user) {
+        authUserId = authUser.user.id;
+      }
+    }
+
+    // 2. Generate a local ID fallback if authUserId is not populated
+    if (!authUserId) {
+      authUserId = "admin_" + Date.now();
+    }
+
+    // Hash password with SHA-256 for local sync & local-db fallback
+    const passwordHash = crypto.createHash("sha256").update(password).digest("hex");
+
+    const newAdmin: ServerAdminUser = {
+      id: authUserId,
+      username,
+      email,
+      passwordHash,
+      role: "Administrator",
+      createdAt: new Date().toISOString()
+    };
+
+    // 3. Upsert into admin_users table in Supabase
+    const { error: dbError } = await supabase.from("admin_users").upsert([newAdmin]);
+    if (dbError) {
+      console.warn("Could not insert admin into 'admin_users' table:", dbError.message);
+    }
+
+    // 4. Also register into local JSON file admin-db.json for fallback
+    let localAdmins: ServerAdminUser[] = [];
+    if (fs.existsSync(ADMIN_DB_FILE)) {
+      try {
+        localAdmins = JSON.parse(fs.readFileSync(ADMIN_DB_FILE, "utf-8"));
+      } catch (e) {}
+    }
+    
+    if (!localAdmins.some(a => a.email === email)) {
+      localAdmins.push(newAdmin);
+      fs.writeFileSync(ADMIN_DB_FILE, JSON.stringify(localAdmins, null, 2), "utf-8");
+    }
+
+    res.json({
+      success: true,
+      message: `Initial Administrator account "${username}" registered successfully!${adminClient ? " User also created in Supabase Auth." : ""}`
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: `Admin creation threw exception: ${err.message}` });
+  }
+});
+
+
 // Endpoint for logging client-side errors
 app.post("/api/log-error", (req, res) => {
   const { message, source, lineno, colno, error, stack, href } = req.body;
@@ -295,6 +1276,20 @@ app.post("/api/leads", async (req, res) => {
 
     leads.unshift(newLead);
     writeLeads(leads);
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from("leads").insert([newLead]);
+        if (error) {
+          console.warn("Could not insert lead to Supabase 'leads' table:", error.message);
+        } else {
+          console.log("Successfully saved lead to Supabase 'leads' table!");
+        }
+      } catch (err) {
+        console.error("Exception saving lead to Supabase in server:", err);
+      }
+    }
 
     // Prepare notifications
     const transporter = getTransporter();
@@ -898,8 +1893,18 @@ app.delete("/api/auth/users/:id", requireSession, (req: any, res) => {
 // --- PROTECTED CMS INQUIRY (LEADS) ENDPOINTS ---
 
 // Fetch all leads (Requires active operational session)
-app.get("/api/leads", requireSession, (req, res) => {
+app.get("/api/leads", requireSession, async (req, res) => {
   try {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from("leads").select("*").order("createdAt", { ascending: false });
+      if (!error && data) {
+        return res.json(data);
+      }
+      if (error) {
+        console.warn("Could not fetch leads from Supabase table 'leads'. Falling back to local json:", error.message);
+      }
+    }
     const leads = readLeads();
     return res.json(leads);
   } catch (error) {
@@ -908,12 +1913,24 @@ app.get("/api/leads", requireSession, (req, res) => {
 });
 
 // Update lead status (Requires active operational session)
-app.put("/api/leads/:id", requireSession, (req, res) => {
+app.put("/api/leads/:id", requireSession, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    let leads = readLeads();
 
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+        if (error) {
+          console.warn("Could not update lead in Supabase 'leads' table:", error.message);
+        }
+      } catch (err) {
+        console.error("Exception updating lead in Supabase:", err);
+      }
+    }
+
+    let leads = readLeads();
     let leadUpdated = false;
     leads = leads.map((lead: any) => {
       if (lead.id === id) {
@@ -935,9 +1952,22 @@ app.put("/api/leads/:id", requireSession, (req, res) => {
 });
 
 // Delete lead (Requires active operational session)
-app.delete("/api/leads/:id", requireSession, (req, res) => {
+app.delete("/api/leads/:id", requireSession, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from("leads").delete().eq("id", id);
+        if (error) {
+          console.warn("Could not delete lead from Supabase 'leads' table:", error.message);
+        }
+      } catch (err) {
+        console.error("Exception deleting lead in Supabase:", err);
+      }
+    }
+
     const leads = readLeads();
     const filteredLeads = leads.filter((lead: any) => lead.id !== id);
 

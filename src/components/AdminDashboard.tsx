@@ -1,5 +1,6 @@
 import React, { useState, FormEvent, useEffect, useCallback, useMemo } from "react";
 import { hashPassword } from "../utils/crypto";
+import ImageUploader from "./ImageUploader";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell 
 } from "recharts";
@@ -163,8 +164,8 @@ export default function AdminDashboard({
 
   // 6. Enterprise CMS Modules Sub-tab
   const [activeSubTab, setActiveSubTab] = useState<
-    "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore"
-  >("dashboard");
+    "setup" | "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore"
+  >("setup");
 
   // 7. Session Activity Extension Handler
   const resetSessionTimer = useCallback(() => {
@@ -244,6 +245,186 @@ export default function AdminDashboard({
     url: ""
   });
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // --- SELF-SERVICE SETUP WIZARD STATES ---
+  const [setupConfig, setSetupConfig] = useState({
+    url: "",
+    anonKey: "",
+    serviceRoleKey: "",
+    pgConnectionString: ""
+  });
+  
+  const [setupStatus, setSetupStatus] = useState<{
+    connected: boolean;
+    buckets: Record<string, string>;
+    tables: Record<string, boolean>;
+    hasAdminUser: boolean;
+    sqlScript: string;
+  } | null>(null);
+
+  const [setupActiveStep, setSetupActiveStep] = useState<number>(1);
+  const [setupLoading, setSetupLoading] = useState<boolean>(false);
+  const [setupMsg, setSetupMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [wizardAdminUsername, setWizardAdminUsername] = useState("");
+  const [wizardAdminEmail, setWizardAdminEmail] = useState("");
+  const [wizardAdminPassword, setWizardAdminPassword] = useState("");
+
+  const fetchSetupStatus = async () => {
+    try {
+      const res = await fetch("/api/setup/status");
+      if (res.ok) {
+        const data = await res.json();
+        setSetupStatus(data);
+      }
+    } catch (err) {
+      console.error("Failed to load setup wizard installation status:", err);
+    }
+  };
+
+  const loadCurrentConfig = async () => {
+    try {
+      const res = await fetch("/api/supabase-config");
+      if (res.ok) {
+        const data = await res.json();
+        setSetupConfig({
+          url: data.supabaseUrl || "",
+          anonKey: data.supabaseAnonKey || "",
+          serviceRoleKey: data.supabaseServiceRoleKey ? "•"?.repeat(15) : "", // Masked placeholder if already saved on server
+          pgConnectionString: data.pgConnectionString ? "•"?.repeat(15) : "" // Masked placeholder if already saved on server
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load current configuration variables:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadCurrentConfig();
+    fetchSetupStatus();
+  }, []);
+
+  const handleTestConnection = async () => {
+    setSetupLoading(true);
+    setSetupMsg(null);
+    try {
+      const res = await fetch("/api/setup/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: setupConfig.url, anonKey: setupConfig.anonKey })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg({ type: "success", text: "✓ Connection tested successfully! Credentials are valid." });
+      } else {
+        setSetupMsg({ type: "error", text: data.error || "Connection failed. Please check credentials." });
+      }
+    } catch (err: any) {
+      setSetupMsg({ type: "error", text: err.message || "Failed to contact local server." });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    setSetupLoading(true);
+    setSetupMsg(null);
+    try {
+      const payload = {
+        url: setupConfig.url,
+        anonKey: setupConfig.anonKey,
+        // Only send the raw service role / connection string if they edited them (i.e. not placeholders of dots)
+        serviceRoleKey: setupConfig.serviceRoleKey.includes("•") ? undefined : setupConfig.serviceRoleKey,
+        pgConnectionString: setupConfig.pgConnectionString.includes("•") ? undefined : setupConfig.pgConnectionString
+      };
+
+      const res = await fetch("/api/setup/save-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg({ type: "success", text: "✓ Supabase credentials saved and applied in memory successfully!" });
+        await fetchSetupStatus();
+        await loadCurrentConfig();
+      } else {
+        setSetupMsg({ type: "error", text: data.error || "Failed to save configuration." });
+      }
+    } catch (err: any) {
+      setSetupMsg({ type: "error", text: err.message || "Failed to communicate with local server." });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleCreateBuckets = async () => {
+    setSetupLoading(true);
+    setSetupMsg(null);
+    try {
+      const res = await fetch("/api/setup/create-buckets", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg({ type: "success", text: "✓ Storage Buckets initialized successfully!" });
+        await fetchSetupStatus();
+      } else {
+        setSetupMsg({ type: "error", text: data.error || "Bucket creation failed. Is Service Role Key configured?" });
+      }
+    } catch (err: any) {
+      setSetupMsg({ type: "error", text: err.message || "Error contacting setup backend server." });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleMigrateDatabase = async () => {
+    setSetupLoading(true);
+    setSetupMsg(null);
+    try {
+      const res = await fetch("/api/setup/initialize-database", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg({ type: "success", text: "✓ CMS database tables migrated and active!" });
+        await fetchSetupStatus();
+      } else {
+        setSetupMsg({ type: "error", text: data.error || "Database migration failed. Verify connection string." });
+      }
+    } catch (err: any) {
+      setSetupMsg({ type: "error", text: err.message || "Error communicating with server database migrator." });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleWizardCreateAdmin = async () => {
+    setSetupLoading(true);
+    setSetupMsg(null);
+    try {
+      const res = await fetch("/api/setup/create-admin-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: wizardAdminUsername,
+          email: wizardAdminEmail,
+          password: wizardAdminPassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg({ type: "success", text: `✓ Administrator "${wizardAdminUsername}" created successfully!` });
+        await fetchSetupStatus();
+        setWizardAdminUsername("");
+        setWizardAdminEmail("");
+        setWizardAdminPassword("");
+      } else {
+        setSetupMsg({ type: "error", text: data.error || "Failed to register administrator." });
+      }
+    } catch (err: any) {
+      setSetupMsg({ type: "error", text: err.message || "Server error while registering administrator account." });
+    } finally {
+      setSetupLoading(false);
+    }
+  };
 
   // Unified Modals / Drawer Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -1710,6 +1891,7 @@ export default function AdminDashboard({
                 
                 {[
                   { id: "dashboard", label: "Dashboard Hub", icon: BarChart, count: null },
+                  { id: "setup", label: "System Setup", icon: Sliders, count: null },
                   { id: "products", label: "Products Catalog", icon: Layers, count: products.length },
                   { id: "gallery", label: "Project Gallery", icon: ImageIcon, count: galleryItems.length },
                   { id: "downloads", label: "Technical Docs", icon: Download, count: downloads.length },
@@ -1822,6 +2004,477 @@ export default function AdminDashboard({
 
             {/* CMS Central workspace */}
             <div className="lg:col-span-9 space-y-6">
+
+              {/* SYSTEM SETUP WIZARD */}
+              {activeSubTab === "setup" && (
+                <div className="bg-neutral-950 border border-white/10 rounded-2xl p-6 space-y-6 animate-fade-in text-white">
+                  <div className="border-b border-white/5 pb-4">
+                    <h2 className="text-xl font-black uppercase text-white tracking-tight flex items-center gap-2">
+                      <Sliders className="w-5 h-5 text-red-500" />
+                      Supabase Cloud Setup Wizard
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Configure your enterprise backend, storage buckets, and database schema without editing any source files.
+                    </p>
+                  </div>
+
+                  {/* Horizontal Stepper Progress */}
+                  <div className="grid grid-cols-6 gap-2 border-b border-white/5 pb-4 text-center">
+                    {[
+                      { step: 1, label: "Credentials" },
+                      { step: 2, label: "Storage Buckets" },
+                      { step: 3, label: "DB Migration" },
+                      { step: 4, label: "Admin User" },
+                      { step: 5, label: "Upload Spec" },
+                      { step: 6, label: "Status Verification" }
+                    ].map((s) => (
+                      <button
+                        key={s.step}
+                        onClick={() => setSetupActiveStep(s.step)}
+                        className={`py-2 px-1 rounded-lg border transition-all text-[10px] uppercase font-bold tracking-wider cursor-pointer ${
+                          setupActiveStep === s.step
+                            ? "bg-red-600/15 text-red-400 border-red-500/40"
+                            : "bg-neutral-900 text-gray-400 border-white/5 hover:border-white/10 hover:text-white"
+                        }`}
+                      >
+                        Step {s.step}
+                        <span className="hidden sm:block text-[8px] font-mono font-normal tracking-normal text-gray-500 lowercase mt-0.5">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Message Banner */}
+                  {setupMsg && (
+                    <div className={`p-4 rounded-xl text-xs font-mono flex items-start gap-2 border ${
+                      setupMsg.type === "success"
+                        ? "bg-emerald-950/20 text-emerald-400 border-emerald-500/20"
+                        : "bg-red-950/20 text-red-400 border-red-500/20"
+                    }`}>
+                      <span className="shrink-0">{setupMsg.type === "success" ? "✓" : "⚠️"}</span>
+                      <p className="whitespace-pre-wrap">{setupMsg.text}</p>
+                    </div>
+                  )}
+
+                  {/* STEP 1: CREDENTIALS */}
+                  {setupActiveStep === 1 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">1. Register Connection Secrets</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
+                          Provide your Supabase Project settings. This is completely secure; the settings are saved server-side in a local <code>.env</code> file.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold">Supabase Project URL</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. https://abcde12345.supabase.co"
+                            value={setupConfig.url}
+                            onChange={(e) => setSetupConfig({ ...setupConfig, url: e.target.value })}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold">Publishable Anon Key</label>
+                          <input
+                            type="password"
+                            placeholder="e.g. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                            value={setupConfig.anonKey}
+                            onChange={(e) => setSetupConfig({ ...setupConfig, anonKey: e.target.value })}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center justify-between">
+                            <span>Service Role Key (Recommended)</span>
+                            <span className="text-[8px] text-gray-500 lowercase font-normal">(required for auto-buckets & auth)</span>
+                          </label>
+                          <input
+                            type="password"
+                            placeholder={setupConfig.serviceRoleKey.includes("•") ? "Saved (Unchanged)" : "e.g. super-secret-service-role-key"}
+                            value={setupConfig.serviceRoleKey.includes("•") ? "" : setupConfig.serviceRoleKey}
+                            onChange={(e) => setSetupConfig({ ...setupConfig, serviceRoleKey: e.target.value })}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center justify-between">
+                            <span>PostgreSQL Connection String</span>
+                            <span className="text-[8px] text-gray-500 lowercase font-normal">(required for auto DB migration)</span>
+                          </label>
+                          <input
+                            type="password"
+                            placeholder={setupConfig.pgConnectionString.includes("•") ? "Saved (Unchanged)" : "postgresql://postgres.[id]:[pass]@pooler.supabase.com:6543/postgres"}
+                            value={setupConfig.pgConnectionString.includes("•") ? "" : setupConfig.pgConnectionString}
+                            onChange={(e) => setSetupConfig({ ...setupConfig, pgConnectionString: e.target.value })}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 justify-end pt-2">
+                        <button
+                          type="button"
+                          onClick={handleTestConnection}
+                          disabled={setupLoading || !setupConfig.url || !setupConfig.anonKey}
+                          className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs uppercase rounded-lg border border-white/10 transition-all cursor-pointer disabled:opacity-40"
+                        >
+                          Test Connection
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveConfig}
+                          disabled={setupLoading || !setupConfig.url || !setupConfig.anonKey}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg shadow-red-600/10 disabled:opacity-40"
+                        >
+                          {setupLoading ? "Saving..." : "Save & Bind Configuration"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 2: STORAGE SETUP */}
+                  {setupActiveStep === 2 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">2. Storage Buckets Configuration</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          We require 5 specific public storage buckets in Supabase to host website content. Using your saved Service Role Key, we can create and verify them automatically in 1 click!
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        {["products", "gallery", "videos", "documents", "logos"].map((b) => {
+                          const ready = setupStatus?.buckets?.[b] === "ready";
+                          return (
+                            <div key={b} className="bg-neutral-900 border border-white/5 rounded-xl p-3 text-center space-y-1.5 font-mono text-xs">
+                              <p className="text-[10px] text-gray-400 font-bold">{b}</p>
+                              <div className="flex justify-center">
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                  ready ? "bg-emerald-600/15 text-emerald-400 border border-emerald-500/20" : "bg-yellow-600/15 text-yellow-400 border border-yellow-500/20"
+                                }`}>
+                                  {ready ? "Active / Ready" : "Missing / Offline"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="bg-neutral-900 border border-white/5 p-4 rounded-xl space-y-2 text-xs text-gray-400 leading-relaxed font-mono">
+                        <p className="text-[10px] uppercase font-bold text-red-500">Manual Bucket Creation Fallback Instructions:</p>
+                        <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                          <li>Log in to your <strong>Supabase Dashboard</strong>.</li>
+                          <li>Go to the <strong>Storage</strong> panel from the left sidebar.</li>
+                          <li>Click <strong>New Bucket</strong>. Create buckets named exactly: <code>products</code>, <code>gallery</code>, <code>videos</code>, <code>documents</code>, and <code>logos</code>.</li>
+                          <li>⚠️ <strong>CRITICAL:</strong> Toggle the <strong>"Public Bucket"</strong> switch to enabled for each bucket, so assets are viewable by the public!</li>
+                        </ol>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2">
+                        <button
+                          type="button"
+                          onClick={fetchSetupStatus}
+                          className="px-4 py-2 border border-white/5 hover:border-white/15 bg-neutral-900 text-gray-300 text-xs font-bold uppercase rounded-lg cursor-pointer"
+                        >
+                          Refresh Bucket Status
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateBuckets}
+                          disabled={setupLoading || !setupStatus?.connected}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg shadow-red-600/10 disabled:opacity-40"
+                        >
+                          Initialize Storage Buckets Automatically
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: DATABASE SCHEMA SETUP */}
+                  {setupActiveStep === 3 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">3. CMS Database Tables</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          Reefilm India relies on 18 production relational SQL tables. If you saved your PostgreSQL connection string in Step 1, you can run migrations automatically! Otherwise, copy the SQL migration script below and run it inside the Supabase SQL editor.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 font-mono text-[10px]">
+                        {[
+                          "products", "product_images", "product_documents", "gallery", "categories", "blogs", "downloads", "team_members", "contact_leads", "quote_requests", "website_settings", "admin_users", "media_library",
+                          "projects", "testimonials", "team", "settings", "leads"
+                        ].map((t) => {
+                          const exists = setupStatus?.tables?.[t] === true;
+                          return (
+                            <div key={t} className="bg-neutral-900 border border-white/5 rounded-xl p-2 text-center space-y-1">
+                              <p className="text-[8px] text-gray-400 font-bold truncate" title={t}>{t}</p>
+                              <div className="flex justify-center">
+                                <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${
+                                  exists ? "bg-emerald-600/15 text-emerald-400 border border-emerald-500/20" : "bg-red-600/15 text-red-400 border border-red-500/20"
+                                }`}>
+                                  {exists ? "✓ Ok" : "✗ Missing"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold font-mono text-gray-400 uppercase">Interactive SQL Migration Schema</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(setupStatus?.sqlScript || "");
+                              setSetupMsg({ type: "success", text: "✓ SQL Schema copied to clipboard successfully!" });
+                              setTimeout(() => setSetupMsg(null), 4000);
+                            }}
+                            className="text-[9px] bg-neutral-900 hover:bg-neutral-800 px-3 py-1.5 border border-white/15 rounded text-white cursor-pointer font-mono font-bold uppercase flex items-center gap-1"
+                          >
+                            <Copy className="w-3. h-3" /> Copy SQL Script
+                          </button>
+                        </div>
+                        <div className="w-full max-h-40 overflow-y-auto bg-black border border-white/10 rounded-lg p-3 text-[10px] font-mono text-gray-400 whitespace-pre scrollbar-thin">
+                          {setupStatus?.sqlScript || "-- Loading SQL schema script..."}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2">
+                        <button
+                          type="button"
+                          onClick={fetchSetupStatus}
+                          className="px-4 py-2 border border-white/5 bg-neutral-900 text-gray-300 text-xs font-bold uppercase rounded-lg cursor-pointer"
+                        >
+                          Refresh Table Status
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleMigrateDatabase}
+                          disabled={setupLoading || !setupStatus?.connected}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg shadow-red-600/10 disabled:opacity-40"
+                        >
+                          Migrate Database Schema Automatically
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 4: AUTHENTICATION */}
+                  {setupActiveStep === 4 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">4. Register First Administrator</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          Provision the primary administrator. If the Service Role Key is configured in Step 1, the user will be instantly activated in Supabase Auth bypassing email validation links, and synced into the local CMS users list.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold">Admin Username</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. admin"
+                            value={wizardAdminUsername}
+                            onChange={(e) => setWizardAdminUsername(e.target.value)}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold">Admin Email Address</label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="e.g. admin@reefilm.in"
+                            value={wizardAdminEmail}
+                            onChange={(e) => setWizardAdminEmail(e.target.value)}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-gray-400 uppercase font-bold">Admin Password</label>
+                          <input
+                            type="password"
+                            required
+                            placeholder="At least 6 characters"
+                            value={wizardAdminPassword}
+                            onChange={(e) => setWizardAdminPassword(e.target.value)}
+                            className="w-full bg-neutral-900 border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-red-600 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <span className="text-gray-500">Current Admins Status:</span>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                            setupStatus?.hasAdminUser ? "bg-emerald-600/15 text-emerald-400 border border-emerald-500/20" : "bg-yellow-600/15 text-yellow-400 border border-yellow-500/20"
+                          }`}>
+                            {setupStatus?.hasAdminUser ? "Accounts Registered" : "Zero Admins Found"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleWizardCreateAdmin}
+                          disabled={setupLoading || !wizardAdminUsername || !wizardAdminEmail || !wizardAdminPassword}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg shadow-red-600/10 disabled:opacity-40"
+                        >
+                          Create Primary Administrator Account
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 5: UPLOAD SPECIFICATION */}
+                  {setupActiveStep === 5 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">5. Media Upload Specifications</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          Once connection variables (Step 1), storage buckets (Step 2), and database tables (Step 3) are active, all image and file inputs are instantly enabled for direct upload.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs leading-relaxed font-mono">
+                        <div className="bg-neutral-900 border border-white/5 rounded-xl p-4 space-y-2">
+                          <p className="text-[10px] text-red-500 uppercase font-bold">📸 Product Images</p>
+                          <ul className="list-disc pl-4 space-y-1 text-[11px] text-gray-400">
+                            <li>Format: JPEG, PNG, WEBP</li>
+                            <li>Resolution: Aspect 16:9 or 1:1</li>
+                            <li>Auto-stored: <code>products</code> bucket</li>
+                            <li>Instant website updates</li>
+                          </ul>
+                        </div>
+                        <div className="bg-neutral-900 border border-white/5 rounded-xl p-4 space-y-2">
+                          <p className="text-[10px] text-red-500 uppercase font-bold">🎬 Gallery & Video</p>
+                          <ul className="list-disc pl-4 space-y-1 text-[11px] text-gray-400">
+                            <li>Format: MP4 (MPEG-4 H.264)</li>
+                            <li>Size limit: 50MB per file</li>
+                            <li>Auto-stored: <code>videos</code> bucket</li>
+                            <li>Progress indicator live stream</li>
+                          </ul>
+                        </div>
+                        <div className="bg-neutral-900 border border-white/5 rounded-xl p-4 space-y-2">
+                          <p className="text-[10px] text-red-500 uppercase font-bold">📄 PDF Brochures & Docs</p>
+                          <ul className="list-disc pl-4 space-y-1 text-[11px] text-gray-400">
+                            <li>Format: PDF documents</li>
+                            <li>Auto-stored: <code>documents</code> bucket</li>
+                            <li>Generates public download URL</li>
+                            <li>Counters tracked on dashboard</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setSetupActiveStep(6)}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg"
+                        >
+                          Continue to Final Verification
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 6: VERIFICATION CHECKLIST */}
+                  {setupActiveStep === 6 && (
+                    <div className="space-y-5">
+                      <div className="bg-red-950/10 border border-red-500/10 p-4 rounded-xl space-y-2">
+                        <h3 className="text-xs font-black uppercase text-red-400 tracking-wider font-mono">6. Installation Health Verification</h3>
+                        <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
+                          A real-time comprehensive diagnosis of the Reefilm India production integration status.
+                        </p>
+                      </div>
+
+                      <div className="bg-neutral-900 border border-white/5 rounded-xl p-4 space-y-3 font-mono text-xs">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Enterprise Integration Health Diagnosis</p>
+                        
+                        <div className="space-y-2.5 pt-1.5 border-t border-white/5">
+                          <div className="flex items-center justify-between">
+                            <span>Cloud Storage API Connection</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              setupStatus?.connected ? "bg-emerald-600/15 text-emerald-400" : "bg-red-600/15 text-red-400"
+                            }`}>
+                              {setupStatus?.connected ? "● Connected Successfully" : "● Disconnected"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span>Database Schema (Tables 18/18)</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              setupStatus && Object.values(setupStatus.tables).filter(v => v).length === 18
+                                ? "bg-emerald-600/15 text-emerald-400"
+                                : "bg-red-600/15 text-red-400"
+                            }`}>
+                              {setupStatus ? `${Object.values(setupStatus.tables).filter(v => v).length}/18 Verified` : "0/18 Verified"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span>Content Storage Buckets (Buckets 6/6)</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              setupStatus && Object.values(setupStatus.buckets).filter(v => v === "ready").length === 6
+                                ? "bg-emerald-600/15 text-emerald-400"
+                                : "bg-red-600/15 text-red-400"
+                            }`}>
+                              {setupStatus ? `${Object.values(setupStatus.buckets).filter(v => v === "ready").length}/6 Ready` : "0/6 Ready"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span>System Administrator Auth Setup</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              setupStatus?.hasAdminUser ? "bg-emerald-600/15 text-emerald-400" : "bg-red-600/15 text-red-400"
+                            }`}>
+                              {setupStatus?.hasAdminUser ? "Verified Account" : "No Admins Found"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {setupStatus?.connected &&
+                       setupStatus && Object.values(setupStatus.tables).filter(v => v).length === 18 &&
+                       Object.values(setupStatus.buckets).filter(v => v === "ready").length === 6 && (
+                        <div className="bg-emerald-600/10 border border-emerald-500/20 p-4 rounded-xl text-center space-y-1.5 animate-bounce">
+                          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest font-mono">🚀 ALL SYSTEMS OPERATIONAL</p>
+                          <p className="text-[10px] text-gray-400">Reefilm India Enterprise Portal is fully configured and bound to production cloud serverless. Live website synchronization is active.</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pt-2">
+                        <button
+                          type="button"
+                          onClick={fetchSetupStatus}
+                          className="px-4 py-2 border border-white/5 bg-neutral-900 text-gray-300 text-xs font-bold uppercase rounded-lg cursor-pointer"
+                        >
+                          Run Fresh Health Scan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSubTab("dashboard");
+                            setSuccessMsg("System installation setup wizard exited. Sync active!");
+                            setTimeout(() => setSuccessMsg(""), 4000);
+                          }}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer shadow-lg"
+                        >
+                          Enter Dashboard Hub
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 1. DASHBOARD HUB */}
               {activeSubTab === "dashboard" && (
@@ -2009,18 +2662,7 @@ export default function AdminDashboard({
 
                         {/* FILE ATTACHMENTS & UPLOADERS */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
-                            <span>Image URL / Path</span>
-                            <button
-                              type="button"
-                              onClick={() => triggerSimulatedUpload("image", pName || "product_image", (url) => setPImage(url))}
-                              disabled={uploadState.isUploading}
-                              className="text-[9px] font-mono text-red-500 hover:underline cursor-pointer"
-                            >
-                              {uploadState.isUploading && uploadState.fileType === "image" ? `Uploading (${uploadState.progress}%)` : "[Upload to Supabase]"}
-                            </button>
-                          </label>
-                          <input type="text" placeholder="/src/assets/images/file.jpg or Supabase URL" value={pImage} onChange={(e) => setPImage(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                          <ImageUploader label="Product Image" value={pImage} onChange={setPImage} />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
@@ -2140,18 +2782,7 @@ export default function AdminDashboard({
                           <input type="text" required placeholder="e.g. Chennai International Hub" value={gLocation} onChange={(e) => setGLocation(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
                         </div>
                         <div className="space-y-1 md:col-span-2">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
-                            <span>Image URL</span>
-                            <button
-                              type="button"
-                              onClick={() => triggerSimulatedUpload("image", gTitle || "gallery_image", (url) => setGImage(url))}
-                              disabled={uploadState.isUploading}
-                              className="text-[9px] font-mono text-red-500 hover:underline cursor-pointer"
-                            >
-                              {uploadState.isUploading && uploadState.fileType === "image" ? `Uploading (${uploadState.progress}%)` : "[Upload Photo via Supabase]"}
-                            </button>
-                          </label>
-                          <input type="text" required placeholder="/src/assets/images/file.jpg or Supabase storage URL" value={gImage} onChange={(e) => setGImage(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                          <ImageUploader label="Project Image" value={gImage} onChange={setGImage} />
                         </div>
                         <div className="space-y-1 md:col-span-2">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
@@ -2570,18 +3201,7 @@ export default function AdminDashboard({
                           <input type="text" placeholder="e.g. 6 min read" value={bReadTime} onChange={(e) => setBReadTime(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
-                            <span>Featured Image Path</span>
-                            <button
-                              type="button"
-                              onClick={() => triggerSimulatedUpload("image", bTitle || "blog_image", (url) => setBImage(url))}
-                              disabled={uploadState.isUploading}
-                              className="text-[9px] font-mono text-red-500 hover:underline cursor-pointer"
-                            >
-                              {uploadState.isUploading && uploadState.fileType === "image" ? `Uploading (${uploadState.progress}%)` : "[Upload to Supabase]"}
-                            </button>
-                          </label>
-                          <input type="text" placeholder="/src/assets/images/file.jpg or Supabase path" value={bImage} onChange={(e) => setBImage(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                          <ImageUploader label="Featured Image" value={bImage} onChange={setBImage} />
                         </div>
                         <div className="space-y-1 md:col-span-2">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Short Excerpt / Preview Summary</label>
@@ -2652,18 +3272,7 @@ export default function AdminDashboard({
                           <input type="text" value={settings.tagline} onChange={(e) => onUpdateSettings({ ...settings, tagline: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
-                            <span>Company Logo Image URL</span>
-                            <button
-                              type="button"
-                              onClick={() => triggerSimulatedUpload("image", "brand_logo", (url) => onUpdateSettings({ ...settings, logoUrl: url }))}
-                              disabled={uploadState.isUploading}
-                              className="text-[9px] font-mono text-red-500 hover:underline cursor-pointer"
-                            >
-                              {uploadState.isUploading && uploadState.fileType === "image" ? "Uploading..." : "[Upload logo]"}
-                            </button>
-                          </label>
-                          <input type="text" value={settings.logoUrl || ""} onChange={(e) => onUpdateSettings({ ...settings, logoUrl: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" placeholder="/src/assets/images/logo.png" />
+                          <ImageUploader label="Company Logo Image" value={settings.logoUrl || ""} onChange={(url) => onUpdateSettings({ ...settings, logoUrl: url })} />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Footer copyright / SLA credit text</label>
@@ -2724,18 +3333,7 @@ export default function AdminDashboard({
                           </select>
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
-                            <span>Hero Backdrop Image (Simulator background)</span>
-                            <button
-                              type="button"
-                              onClick={() => triggerSimulatedUpload("image", "hero_backdrop", (url) => onUpdateSettings({ ...settings, homeHeroImage: url }))}
-                              disabled={uploadState.isUploading}
-                              className="text-[9px] font-mono text-red-500 hover:underline cursor-pointer"
-                            >
-                              {uploadState.isUploading && uploadState.fileType === "image" ? "Uploading..." : "[Upload Backdrop]"}
-                            </button>
-                          </label>
-                          <input type="text" value={settings.homeHeroImage || ""} onChange={(e) => onUpdateSettings({ ...settings, homeHeroImage: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
+                          <ImageUploader label="Hero Backdrop Image (Simulator background)" value={settings.homeHeroImage || ""} onChange={(url) => onUpdateSettings({ ...settings, homeHeroImage: url })} />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Hero Video URL (Optional overlay)</label>

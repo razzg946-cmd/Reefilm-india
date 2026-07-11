@@ -342,20 +342,19 @@ create policy "Admins full rights on activity_logs" on public.activity_logs for 
 -- =======================================================================
 
 -- 1. Categories
-insert into public.categories (id, name, slug, description) values
-('c1111111-1111-1111-1111-111111111111', 'LED Film', 'led-film', 'Adhesive and flexible transparent LED films.'),
-('c2222222-2222-2222-2222-222222222222', 'Glass Display', 'glass-display', 'Double-glazed structural glass display panels.'),
-('c3333333-3333-3333-3333-333333333333', 'Window Display', 'window-display', 'Street-facing high-brightness retail window screens.'),
-('c4444444-4444-4444-4444-444444444444', 'Mesh Display', 'mesh-display', 'Lightweight outdoor curtain grids for building envelopes.')
+insert into public.categories (name, slug, description) values
+('LED Film', 'led-film', 'Adhesive and flexible transparent LED films.'),
+('Glass Display', 'glass-display', 'Double-glazed structural glass display panels.'),
+('Window Display', 'window-display', 'Street-facing high-brightness retail window screens.'),
+('Mesh Display', 'mesh-display', 'Lightweight outdoor curtain grids for building envelopes.')
 on conflict (slug) do nothing;
 
 -- 2. Products
-insert into public.products (id, name, slug, category_id, tagline, description, features, benefits, specifications, installation_guide, maintenance_guide, image_url) values
+insert into public.products (name, slug, category_id, tagline, description, features, benefits, specifications, installation_guide, maintenance_guide, image_url) values
 (
-    'p1111111-1111-1111-1111-111111111111',
     'Transparent LED Film (Adhesive)',
     'transparent-led-film',
-    'c1111111-1111-1111-1111-111111111111',
+    (select id from public.categories where slug = 'led-film' limit 1),
     'Ultra-Thin Adhesive Film that Turns Glass Into a Vibrant Display',
     'Reefilm India flag-ship product. A paper-thin, self-adhesive transparent LED film that laminates directly onto existing glass panels without altering structural integrity.',
     array['Ultra-lightweight: Only 2.4kg per square meter', 'Superior flexibility: Bendable up to 1100R', 'High Transparency: Up to 85% light transmission'],
@@ -376,9 +375,8 @@ insert into public.settings (key, value) values
 on conflict (key) do nothing;
 
 -- 4. Default Admin User (Password: reefilmAdmin2026!)
-insert into public.admins (id, email, password_hash, role) values
+insert into public.admins (email, password_hash, role) values
 (
-    'a1111111-1111-1111-1111-111111111111',
     'razzg946@gmail.com',
     '$2a$12$RyeGby7LzBAnfGg79zJm9OzB.h1Eun1x18jZJp.p067F1zIu9m2jG', -- pre-hashed bcrypt hash
     'SuperAdmin'

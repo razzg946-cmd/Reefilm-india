@@ -4,6 +4,19 @@ import {
   INITIAL_GALLERY_ITEMS, INITIAL_TEAM_MEMBERS, INITIAL_SETTINGS, INITIAL_ADMIN_USERS
 } from "./data";
 import { Product, Project, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "./types";
+import { 
+  fetchProducts, syncProducts,
+  fetchProjects, syncProjects,
+  fetchBlogs, syncBlogs,
+  fetchDownloads, syncDownloads,
+  fetchTestimonials, syncTestimonials,
+  fetchGallery, syncGallery,
+  fetchTeam, syncTeam,
+  fetchSettings, syncSettings,
+  fetchAdminUsers, syncAdminUsers,
+  fetchLeads, syncLeads
+} from "./lib/supabaseSync";
+import { initializeSupabaseDynamically } from "./lib/supabase";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -397,10 +410,11 @@ export default function App() {
     return INITIAL_ADMIN_USERS;
   });
 
-  // Persist State modifications
+  // Persist State modifications to LocalStorage and sync with Supabase Database
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_leads", JSON.stringify(leads));
+      syncLeads(leads);
     } catch (e) {
       console.error("Error writing leads to localStorage:", e);
     }
@@ -409,6 +423,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_products", JSON.stringify(products));
+      syncProducts(products);
     } catch (e) {
       console.error("Error writing products to localStorage:", e);
     }
@@ -417,6 +432,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_projects", JSON.stringify(projects));
+      syncProjects(projects);
     } catch (e) {
       console.error("Error writing projects to localStorage:", e);
     }
@@ -425,6 +441,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_blogs", JSON.stringify(blogs));
+      syncBlogs(blogs);
     } catch (e) {
       console.error("Error writing blogs to localStorage:", e);
     }
@@ -433,6 +450,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_downloads", JSON.stringify(downloads));
+      syncDownloads(downloads);
     } catch (e) {
       console.error("Error writing downloads to localStorage:", e);
     }
@@ -441,6 +459,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_testimonials", JSON.stringify(testimonials));
+      syncTestimonials(testimonials);
     } catch (e) {
       console.error("Error writing testimonials to localStorage:", e);
     }
@@ -449,6 +468,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_gallery", JSON.stringify(gallery));
+      syncGallery(gallery);
     } catch (e) {
       console.error("Error writing gallery to localStorage:", e);
     }
@@ -457,6 +477,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_team", JSON.stringify(team));
+      syncTeam(team);
     } catch (e) {
       console.error("Error writing team to localStorage:", e);
     }
@@ -465,6 +486,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_settings", JSON.stringify(settings));
+      syncSettings(settings);
     } catch (e) {
       console.error("Error writing settings to localStorage:", e);
     }
@@ -473,27 +495,59 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("reefilm_admin_users", JSON.stringify(adminUsers));
+      syncAdminUsers(adminUsers);
     } catch (e) {
       console.error("Error writing admin_users to localStorage:", e);
     }
   }, [adminUsers]);
 
-  // Sync leads with backend database on startup
+  // Synchronize ALL databases from Supabase on startup if configured (with local state fallback)
   useEffect(() => {
-    const fetchLeads = async () => {
+    const syncAllFromSupabase = async () => {
       try {
-        const response = await fetch("/api/leads");
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setLeads(data);
-          }
-        }
+        // Attempt dynamic in-memory initialization of Supabase client using stored server credentials
+        await initializeSupabaseDynamically();
+
+        const [
+          dbProducts,
+          dbProjects,
+          dbBlogs,
+          dbDownloads,
+          dbTestimonials,
+          dbGallery,
+          dbTeam,
+          dbSettings,
+          dbAdminUsers,
+          dbLeads
+        ] = await Promise.all([
+          fetchProducts(products),
+          fetchProjects(projects),
+          fetchBlogs(blogs),
+          fetchDownloads(downloads),
+          fetchTestimonials(testimonials),
+          fetchGallery(gallery),
+          fetchTeam(team),
+          fetchSettings(settings),
+          fetchAdminUsers(adminUsers),
+          fetchLeads(leads)
+        ]);
+
+        if (dbProducts && dbProducts.length > 0) setProducts(dbProducts);
+        if (dbProjects && dbProjects.length > 0) setProjects(dbProjects);
+        if (dbBlogs && dbBlogs.length > 0) setBlogs(dbBlogs);
+        if (dbDownloads && dbDownloads.length > 0) setDownloads(dbDownloads);
+        if (dbTestimonials && dbTestimonials.length > 0) setTestimonials(dbTestimonials);
+        if (dbGallery && dbGallery.length > 0) setGallery(dbGallery);
+        if (dbTeam && dbTeam.length > 0) setTeam(dbTeam);
+        if (dbSettings) setSettings(dbSettings);
+        if (dbAdminUsers && dbAdminUsers.length > 0) setAdminUsers(dbAdminUsers);
+        if (dbLeads && dbLeads.length > 0) setLeads(dbLeads);
       } catch (err) {
-        console.error("Failed to fetch leads from backend server:", err);
+        console.error("Failed to fetch startup databases from Supabase:", err);
       }
     };
-    fetchLeads();
+
+    syncAllFromSupabase();
   }, []);
 
   // Handle addition of fresh leads
