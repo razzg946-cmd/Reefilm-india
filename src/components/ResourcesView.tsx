@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { INITIAL_RESOURCES, FAQS } from "../data";
+import { FAQS } from "../data";
+import { ResourceDoc } from "../types";
 import { Download, HelpCircle, FileText, ChevronDown, ChevronUp, CheckCircle, Search } from "lucide-react";
 
-export default function ResourcesView() {
+interface ResourcesViewProps {
+  downloads: ResourceDoc[];
+}
+
+export default function ResourcesView({ downloads }: ResourcesViewProps) {
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
   const [faqSearchQuery, setFaqSearchQuery] = useState("");
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   const handleDownload = (id: string, title: string) => {
-    alert(`Thank you! Downloading package: "${title}" in PDF format. This resource is supplied by Reefilm India Technical Desk.`);
+    setDownloadSuccess(`Document download package: "${title}" in PDF format triggered successfully!`);
+    setTimeout(() => setDownloadSuccess(null), 5000);
   };
 
   const filteredFaqs = faqSearchQuery.trim() === ""
@@ -38,8 +45,14 @@ export default function ResourcesView() {
             <p className="text-xs text-gray-500">Official, certified materials compiled directly by Reefilm Technical Support Desk.</p>
           </div>
 
+          {downloadSuccess && (
+            <div className="bg-emerald-600/15 border border-emerald-500/25 p-3.5 rounded-xl text-xs text-emerald-400 font-mono text-center mb-8 animate-fade-in">
+              ✓ {downloadSuccess}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {INITIAL_RESOURCES.map((doc) => (
+            {downloads.map((doc) => (
               <div key={doc.id} className="border border-white/5 bg-white/[0.01] p-6 rounded-xl flex flex-col justify-between hover:border-white/15 transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { INITIAL_BLOG_POSTS } from "../data";
 import { BlogPost } from "../types";
 import { Calendar, User, Clock, Search, ArrowRight, X } from "lucide-react";
 
-export default function BlogView() {
+interface BlogViewProps {
+  blogs: BlogPost[];
+}
+
+export default function BlogView({ blogs }: BlogViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [readingPost, setReadingPost] = useState<BlogPost | null>(null);
 
   const categories = ["All", "Buying Guide", "Retail Display", "Installation Tips"];
 
-  const filteredPosts = INITIAL_BLOG_POSTS.filter((post) => {
+  const filteredPosts = blogs.filter((post) => {
     const matchesSearch = 
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||

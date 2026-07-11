@@ -18,7 +18,7 @@ export default function ApplicationsView({ setCurrentTab }: ApplicationsViewProp
           <p className="text-xs font-mono uppercase tracking-widest text-red-500 mb-2 font-bold">TAILORED INDUSTRY INTEGRATION</p>
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-4">Architectural Applications</h1>
           <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
-            Explore how premium commercial sectors utilize transparent displays to transform real estate value, secure local branding landmarks, and maximize ROI.
+            Explore how premium commercial sectors utilize self-adhesive transparent LED films, flexible curve wraps, and high-brightness active media to create stunning digital glass facades.
           </p>
 
           {/* Quick tab nav */}

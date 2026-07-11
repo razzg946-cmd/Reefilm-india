@@ -12,7 +12,7 @@ export default function ProjectsView({ setCurrentTab }: ProjectsViewProps) {
   const [activeProject, setActiveProject] = useState<Project>(INITIAL_PROJECTS[0]);
   const [showBefore, setShowBefore] = useState<{ [key: string]: boolean }>({});
 
-  const filters = ["All", "Corporate Office", "Retail Store", "Hotels & Hospitality"];
+  const filters = ["All", ...Array.from(new Set(INITIAL_PROJECTS.map(p => p.category)))];
 
   const filteredProjects = selectedFilter === "All"
     ? INITIAL_PROJECTS
@@ -113,11 +113,47 @@ export default function ProjectsView({ setCurrentTab }: ProjectsViewProps) {
                         <Calendar className="w-4 h-4 text-red-500" />
                         <span>{proj.timeline}</span>
                       </div>
+                      {proj.installationSize && (
+                        <div className="flex items-center space-x-1.5">
+                          <CheckSquare className="w-4 h-4 text-red-500" />
+                          <span>Size: {proj.installationSize}</span>
+                        </div>
+                      )}
                     </div>
 
                     <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
                       {proj.description}
                     </p>
+
+                    {/* Highlights & Benefits */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {proj.projectHighlights && proj.projectHighlights.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-mono text-gray-400 uppercase tracking-widest font-bold">Project Highlights</h4>
+                          <ul className="space-y-1">
+                            {proj.projectHighlights.map((hl, idx) => (
+                              <li key={idx} className="text-[11px] text-gray-400 flex items-start space-x-1.5">
+                                <span className="text-red-500 font-bold">•</span>
+                                <span>{hl}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {proj.customerBenefits && proj.customerBenefits.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-mono text-gray-400 uppercase tracking-widest font-bold">Customer Benefits</h4>
+                          <ul className="space-y-1">
+                            {proj.customerBenefits.map((ben, idx) => (
+                              <li key={idx} className="text-[11px] text-gray-400 flex items-start space-x-1.5">
+                                <span className="text-emerald-500 font-bold">✓</span>
+                                <span>{ben}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Tech list */}
                     <div className="space-y-2">

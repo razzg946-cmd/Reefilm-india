@@ -1,13 +1,15 @@
 import React, { useState, FormEvent } from "react";
 import { Menu, X, Search, ChevronDown, Layers, FileText, Phone, Award, Shield } from "lucide-react";
+import { WebsiteSettings } from "../types";
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   onSearch: (query: string) => void;
+  settings?: WebsiteSettings;
 }
 
-export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarProps) {
+export default function Navbar({ currentTab, setCurrentTab, onSearch, settings }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,20 +47,43 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
           {/* Logo */}
           <div 
             id="logo-container"
-            className="flex items-center space-x-3 cursor-pointer group"
+            className="flex items-center space-x-2.5 cursor-pointer group font-display"
             onClick={() => handleNavClick("home")}
           >
-            <div className="relative w-10 h-10 bg-gradient-to-tr from-red-600 to-black rounded-lg flex items-center justify-center border border-red-500/30 shadow-[0_0_15px_rgba(227,6,19,0.3)] transition-transform group-hover:scale-105">
-              <span className="text-white font-black text-xl tracking-tighter">R</span>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-full animate-ping" />
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-full" />
-            </div>
+            {settings?.logoUrl ? (
+              <img 
+                src={settings.logoUrl} 
+                alt={settings.companyName || "Reefilm India"} 
+                className="h-9 w-auto object-contain rounded transition-transform group-hover:scale-105" 
+                referrerPolicy="no-referrer" 
+              />
+            ) : (
+              <div className="relative w-9 h-9 bg-gradient-to-tr from-red-600 to-neutral-900 rounded-lg flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(227,6,19,0.25)] transition-transform group-hover:scale-105">
+                <span className="text-white font-extrabold text-lg tracking-tighter">R</span>
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full" />
+              </div>
+            )}
             <div>
               <div className="flex items-center">
-                <span className="text-white font-black text-lg tracking-wider">REEFILM</span>
-                <span className="text-red-600 font-extrabold text-lg ml-1">INDIA</span>
+                {settings?.companyName ? (
+                  <span className="text-white font-extrabold text-lg tracking-tight uppercase">
+                    {settings.companyName.split(" ")[0]}
+                    {settings.companyName.split(" ").slice(1).length > 0 && (
+                      <span className="text-[#E30613] ml-1">
+                        {settings.companyName.split(" ").slice(1).join(" ")}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-white font-extrabold text-lg tracking-tight">REEFILM</span>
+                    <span className="text-[#E30613] font-extrabold text-lg ml-1">INDIA</span>
+                  </>
+                )}
               </div>
-              <p className="text-[9px] text-gray-400 tracking-widest uppercase font-mono font-bold leading-none">Transparent LED Displays</p>
+              <p className="text-[8px] text-neutral-400 tracking-widest uppercase font-mono font-bold leading-none">
+                {settings?.tagline || "Transparent LED Film Solutions"}
+              </p>
             </div>
           </div>
 
@@ -90,7 +115,7 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
                     {productsDropdownOpen && (
                       <div className="absolute left-1/2 -translate-x-1/2 mt-0 w-[550px] bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-5 grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div>
-                          <p className="text-xs font-mono uppercase tracking-widest text-red-500 mb-3 border-b border-white/5 pb-1 font-bold">LED Display Films</p>
+                          <p className="text-xs font-mono uppercase tracking-widest text-red-500 mb-3 border-b border-white/5 pb-1 font-bold">Active Film Series</p>
                           <div className="space-y-2">
                             <button 
                               onClick={() => handleNavClick("products")} 
@@ -98,8 +123,8 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
                             >
                               <Layers className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                               <div>
-                                <p className="font-bold">Adhesive LED Film</p>
-                                <p className="text-[10px] text-gray-500">Self-adhesive onto glass facades</p>
+                                <p className="font-bold">O Series (Premium Facade)</p>
+                                <p className="text-[10px] text-gray-500">High-Brightness Outdoor Weatherproof Film</p>
                               </div>
                             </button>
                             <button 
@@ -108,24 +133,24 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
                             >
                               <Layers className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                               <div>
-                                <p className="font-bold">Flexible LED Film</p>
-                                <p className="text-[10px] text-gray-500">Perfect for curved pillars</p>
+                                <p className="font-bold">I-F Series (Flexible Curve)</p>
+                                <p className="text-[10px] text-gray-500">Ultra-Flexible & Customizable Film</p>
                               </div>
                             </button>
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs font-mono uppercase tracking-widest text-red-500 mb-3 border-b border-white/5 pb-1 font-bold">Specialized Glass & Mesh</p>
+                          <p className="text-xs font-mono uppercase tracking-widest text-[#E30613] mb-3 border-b border-white/5 pb-1 font-bold">Bespoke Solutions</p>
                           <div className="space-y-2">
                             <button 
                               onClick={() => handleNavClick("products")} 
                               className="w-full text-left text-xs text-gray-300 hover:text-white hover:bg-white/5 p-2 rounded-md transition-all flex items-start space-x-2"
                             >
-                              <Shield className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                              <Layers className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                               <div>
-                                <p className="font-bold">Structural Glass Display</p>
-                                <p className="text-[10px] text-gray-500">Pre-sandwiched double-glazed</p>
+                                <p className="font-bold">I-R Series (Indoor Fine Pitch)</p>
+                                <p className="text-[10px] text-gray-500">High-Density Corporate Glass Partition</p>
                               </div>
                             </button>
                             <button 
@@ -134,8 +159,8 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
                             >
                               <Layers className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                               <div>
-                                <p className="font-bold">Street Window LED</p>
-                                <p className="text-[10px] text-gray-500">Extreme high brightness</p>
+                                <p className="font-bold">Escalator & Handheld Series</p>
+                                <p className="text-[10px] text-gray-500">Vibration-Resistant & Portable Demo Kits</p>
                               </div>
                             </button>
                           </div>
@@ -165,44 +190,17 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
 
           {/* Actions */}
           <div className="hidden lg:flex items-center space-x-4">
-            {/* Search Toggle */}
-            <button
-              id="search-toggle-btn"
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
             <button
               id="quote-cta-btn"
               onClick={() => handleNavClick("quote")}
-              className="bg-[#E30613] hover:bg-red-700 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_20px_rgba(227,6,19,0.3)] hover:shadow-[0_4px_25px_rgba(227,6,19,0.5)]"
+              className="bg-[#E30613] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-full transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_20px_rgba(227,6,19,0.2)] hover:shadow-[0_4px_25px_rgba(227,6,19,0.4)]"
             >
               Request Quote
-            </button>
-
-            {/* Quick Link to Admin panel */}
-            <button
-              id="admin-link-btn"
-              onClick={() => handleNavClick("admin")}
-              className="text-xs text-gray-500 hover:text-gray-300 font-mono border border-gray-800 rounded-md px-2 py-1 hover:bg-white/5 transition-all"
-            >
-              ADMIN
             </button>
           </div>
 
           {/* Mobile menu button */}
           <div className="flex lg:hidden items-center space-x-3">
-            <button
-              id="mobile-search-toggle-btn"
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/5"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
             <button
               id="mobile-menu-toggle-btn"
               onClick={() => setIsOpen(!isOpen)}
@@ -273,13 +271,6 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch }: NavbarPr
               className="w-full bg-red-600 hover:bg-red-700 text-white text-center font-bold py-3 rounded-lg shadow-lg"
             >
               Request Quote
-            </button>
-            <button
-              id="mobile-admin-link-btn"
-              onClick={() => handleNavClick("admin")}
-              className="w-full text-center text-xs text-gray-500 hover:text-gray-300 font-mono border border-gray-800 py-2 rounded-lg"
-            >
-              Access Admin Panel
             </button>
           </div>
         </div>
