@@ -1,9 +1,9 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { 
   INITIAL_PRODUCTS, INITIAL_PROJECTS, INITIAL_BLOG_POSTS, INITIAL_RESOURCES, TESTIMONIALS, INITIAL_LEADS,
-  INITIAL_GALLERY_ITEMS, INITIAL_TEAM_MEMBERS, INITIAL_SETTINGS, INITIAL_ADMIN_USERS
+  INITIAL_GALLERY_ITEMS, INITIAL_TEAM_MEMBERS, INITIAL_SETTINGS, INITIAL_ADMIN_USERS, APPLICATIONS
 } from "./data";
-import { Product, Project, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "./types";
+import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "./types";
 import { 
   fetchProducts, syncProducts,
   fetchProjects, syncProjects,
@@ -14,7 +14,8 @@ import {
   fetchTeam, syncTeam,
   fetchSettings, syncSettings,
   fetchAdminUsers, syncAdminUsers,
-  fetchLeads, syncLeads
+  fetchLeads, syncLeads,
+  fetchApplications, syncApplications
 } from "./lib/supabaseSync";
 import { initializeSupabaseDynamically } from "./lib/supabase";
 
@@ -398,6 +399,18 @@ export default function App() {
     return INITIAL_SETTINGS;
   });
 
+  const [applications, setApplications] = useState<ApplicationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("reefilm_applications");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Error reading applications from localStorage:", e);
+    }
+    return APPLICATIONS;
+  });
+
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
     try {
       const saved = localStorage.getItem("reefilm_admin_users");
@@ -501,6 +514,15 @@ export default function App() {
     }
   }, [adminUsers]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("reefilm_applications", JSON.stringify(applications));
+      syncApplications(applications);
+    } catch (e) {
+      console.error("Error writing applications to localStorage:", e);
+    }
+  }, [applications]);
+
   // Synchronize ALL databases from Supabase on startup if configured (with local state fallback)
   useEffect(() => {
     const syncAllFromSupabase = async () => {
@@ -518,7 +540,8 @@ export default function App() {
           dbTeam,
           dbSettings,
           dbAdminUsers,
-          dbLeads
+          dbLeads,
+          dbApplications
         ] = await Promise.all([
           fetchProducts(products),
           fetchProjects(projects),
@@ -529,7 +552,8 @@ export default function App() {
           fetchTeam(team),
           fetchSettings(settings),
           fetchAdminUsers(adminUsers),
-          fetchLeads(leads)
+          fetchLeads(leads),
+          fetchApplications(applications)
         ]);
 
         if (dbProducts && dbProducts.length > 0) setProducts(dbProducts);
@@ -542,6 +566,7 @@ export default function App() {
         if (dbSettings) setSettings(dbSettings);
         if (dbAdminUsers && dbAdminUsers.length > 0) setAdminUsers(dbAdminUsers);
         if (dbLeads && dbLeads.length > 0) setLeads(dbLeads);
+        if (dbApplications && dbApplications.length > 0) setApplications(dbApplications);
       } catch (err) {
         console.error("Failed to fetch startup databases from Supabase:", err);
       }
@@ -1014,12 +1039,12 @@ export default function App() {
 
         {/* TAB 4: APPLICATIONS */}
         {currentTab === "applications" && (
-          <ApplicationsView setCurrentTab={setCurrentTab} />
+          <ApplicationsView setCurrentTab={setCurrentTab} applications={applications} products={products} />
         )}
 
         {/* TAB 5: PROJECTS */}
         {currentTab === "projects" && (
-          <ProjectsView setCurrentTab={setCurrentTab} />
+          <ProjectsView setCurrentTab={setCurrentTab} projects={projects} />
         )}
 
         {/* TAB 6: GALLERY */}
@@ -1063,6 +1088,7 @@ export default function App() {
             teamMembers={team}
             settings={settings}
             adminUsers={adminUsers}
+            applications={applications}
             onUpdateLeads={setLeads}
             onUpdateProducts={setProducts}
             onUpdateProjects={setProjects}
@@ -1073,6 +1099,7 @@ export default function App() {
             onUpdateTeamMembers={setTeam}
             onUpdateSettings={setSettings}
             onUpdateAdminUsers={setAdminUsers}
+            onUpdateApplications={setApplications}
           />
         )}
 

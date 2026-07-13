@@ -5,18 +5,20 @@ import { MapPin, Calendar, CheckSquare, Star, ArrowLeftRight } from "lucide-reac
 
 interface ProjectsViewProps {
   setCurrentTab: (tab: string) => void;
+  projects: Project[];
 }
 
-export default function ProjectsView({ setCurrentTab }: ProjectsViewProps) {
+export default function ProjectsView({ setCurrentTab, projects }: ProjectsViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>("All");
-  const [activeProject, setActiveProject] = useState<Project>(INITIAL_PROJECTS[0]);
   const [showBefore, setShowBefore] = useState<{ [key: string]: boolean }>({});
 
-  const filters = ["All", ...Array.from(new Set(INITIAL_PROJECTS.map(p => p.category)))];
+  const activeProjects = projects && projects.length > 0 ? projects : INITIAL_PROJECTS;
+
+  const filters = ["All", ...Array.from(new Set(activeProjects.map(p => p.category)))];
 
   const filteredProjects = selectedFilter === "All"
-    ? INITIAL_PROJECTS
-    : INITIAL_PROJECTS.filter(p => p.category === selectedFilter);
+    ? activeProjects
+    : activeProjects.filter(p => p.category === selectedFilter);
 
   const toggleBeforeAfter = (projectId: string) => {
     setShowBefore(prev => ({

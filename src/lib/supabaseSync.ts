@@ -1,5 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
-import { Product, Project, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
+import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
 
 // Helper to handle safe fetching with graceful fallback
 async function safeFetch<T>(tableName: string, defaultData: T[]): Promise<T[] | null> {
@@ -327,5 +327,32 @@ export async function addLeadToSupabase(lead: LeadInquiry): Promise<boolean> {
   } catch (err) {
     console.error("Exception adding lead to Supabase:", err);
     return false;
+  }
+}
+
+// 11. APPLICATIONS
+export async function fetchApplications(defaultData: ApplicationItem[]): Promise<ApplicationItem[] | null> {
+  return safeFetch<ApplicationItem>("applications", defaultData);
+}
+
+export async function syncApplications(applications: ApplicationItem[]): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  try {
+    const ids = applications.map((a) => a.id);
+    if (ids.length > 0) {
+      await supabase.from("applications").delete().not("id", "in", `(${ids.join(",")})`);
+    } else {
+      await supabase.from("applications").delete().neq("id", "");
+    }
+
+    if (applications.length > 0) {
+      const { error } = await supabase.from("applications").upsert(applications);
+      if (error) console.warn("Supabase applications upsert warning:", error.message);
+    }
+  } catch (err) {
+    console.error("Exception syncing applications:", err);
   }
 }

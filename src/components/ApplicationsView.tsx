@@ -5,10 +5,15 @@ import { LayoutGrid, CheckSquare, Target, Trophy, ArrowRight } from "lucide-reac
 
 interface ApplicationsViewProps {
   setCurrentTab: (tab: string) => void;
+  applications: ApplicationItem[];
+  products: any[];
 }
 
-export default function ApplicationsView({ setCurrentTab }: ApplicationsViewProps) {
-  const [activeApp, setActiveApp] = useState<ApplicationItem>(APPLICATIONS[0]);
+export default function ApplicationsView({ setCurrentTab, applications, products }: ApplicationsViewProps) {
+  const activeApplicationsList = applications && applications.length > 0 ? applications : APPLICATIONS;
+  const [activeAppId, setActiveAppId] = useState<string>(activeApplicationsList[0]?.id || "");
+
+  const activeApp = activeApplicationsList.find(app => app.id === activeAppId) || activeApplicationsList[0];
 
   return (
     <div id="applications-page" className="bg-black text-white font-sans min-h-screen">
@@ -23,12 +28,12 @@ export default function ApplicationsView({ setCurrentTab }: ApplicationsViewProp
 
           {/* Quick tab nav */}
           <div className="flex flex-wrap justify-center gap-2 mt-8">
-            {APPLICATIONS.map((app) => (
+            {activeApplicationsList.map((app) => (
               <button
                 key={app.id}
-                onClick={() => setActiveApp(app)}
+                onClick={() => setActiveAppId(app.id)}
                 className={`px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
-                  activeApp.id === app.id
+                  activeApp && activeApp.id === app.id
                     ? "bg-white text-black border-white shadow-[0_4px_15px_rgba(255,255,255,0.15)]"
                     : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
                 }`}

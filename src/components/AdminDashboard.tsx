@@ -10,7 +10,7 @@ import {
   ExternalLink, Image as ImageIcon, PlayCircle, BookOpen, Settings, UserCheck, ShieldAlert, Edit, 
   Upload, Copy, Check, FileUp, Globe, Clock, HelpCircle, Share2, Sliders, Building2, Cpu
 } from "lucide-react";
-import { Product, Project, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
+import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -23,6 +23,7 @@ interface AdminDashboardProps {
   teamMembers: TeamMember[];
   settings: WebsiteSettings;
   adminUsers: AdminUser[];
+  applications: ApplicationItem[];
   onUpdateLeads: (updatedLeads: LeadInquiry[]) => void;
   onUpdateProducts: (updatedProducts: Product[]) => void;
   onUpdateProjects: (updatedProjects: Project[]) => void;
@@ -33,6 +34,7 @@ interface AdminDashboardProps {
   onUpdateTeamMembers: (updatedTeamMembers: TeamMember[]) => void;
   onUpdateSettings: (updatedSettings: WebsiteSettings) => void;
   onUpdateAdminUsers: (updatedAdminUsers: AdminUser[]) => void;
+  onUpdateApplications: (updatedApplications: ApplicationItem[]) => void;
 }
 
 interface UploadState {
@@ -45,9 +47,9 @@ interface UploadState {
 }
 
 export default function AdminDashboard({
-  products, projects, blogs, downloads, testimonials, leads, galleryItems, teamMembers, settings, adminUsers,
+  products, projects, blogs, downloads, testimonials, leads, galleryItems, teamMembers, settings, adminUsers, applications,
   onUpdateLeads, onUpdateProducts, onUpdateProjects, onUpdateBlogs, onUpdateDownloads, onUpdateTestimonials,
-  onUpdateGalleryItems, onUpdateTeamMembers, onUpdateSettings, onUpdateAdminUsers
+  onUpdateGalleryItems, onUpdateTeamMembers, onUpdateSettings, onUpdateAdminUsers, onUpdateApplications
 }: AdminDashboardProps) {
   
   // 1. Enterprise Administrator List
@@ -164,7 +166,7 @@ export default function AdminDashboard({
 
   // 6. Enterprise CMS Modules Sub-tab
   const [activeSubTab, setActiveSubTab] = useState<
-    "setup" | "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore"
+    "setup" | "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore" | "projects" | "applications"
   >("setup");
 
   // 7. Session Activity Extension Handler
@@ -495,6 +497,35 @@ export default function AdminDashboard({
   const [uRole, setURole] = useState<AdminUser["role"]>("Editor");
   const [uEmail, setUEmail] = useState("");
   const [uPassword, setUPassword] = useState("");
+
+  // 7. Projects Form Fields
+  const [projTitle, setProjTitle] = useState("");
+  const [projCategory, setProjCategory] = useState("Storefronts & Entrances");
+  const [projLocation, setProjLocation] = useState("");
+  const [projClient, setProjClient] = useState("");
+  const [projTimeline, setProjTimeline] = useState("");
+  const [projDescription, setProjDescription] = useState("");
+  const [projBeforeImage, setProjBeforeImage] = useState("");
+  const [projAfterImage, setProjAfterImage] = useState("");
+  const [projTechUsed, setProjTechUsed] = useState("");
+  const [projInstallationSize, setProjInstallationSize] = useState("");
+  const [projHighlights, setProjHighlights] = useState("");
+  const [projBenefits, setProjBenefits] = useState("");
+  const [projReviewText, setProjReviewText] = useState("");
+  const [projReviewer, setProjReviewer] = useState("");
+  const [projReviewerRole, setProjReviewerRole] = useState("");
+  const [projRating, setProjRating] = useState<number>(5);
+
+  // 8. Applications Form Fields
+  const [appTitle, setAppTitle] = useState("");
+  const [appTagline, setAppTagline] = useState("");
+  const [appOverview, setAppOverview] = useState("");
+  const [appBenefits, setAppBenefits] = useState("");
+  const [appRecommendedProducts, setAppRecommendedProducts] = useState("");
+  const [appCaseStudyTitle, setAppCaseStudyTitle] = useState("");
+  const [appChallenge, setAppChallenge] = useState("");
+  const [appSolution, setAppSolution] = useState("");
+  const [appResult, setAppResult] = useState("");
 
   // --- ENTERPRISE CMS CORE EXTENSION MODULES ---
 
@@ -1157,6 +1188,172 @@ export default function AdminDashboard({
       onUpdateProducts(products.filter(p => p.id !== prodId));
       setSuccessMsg("Product removed from catalog successfully!");
       logActivity("PRODUCT_DELETE", `Deleted product "${prod ? prod.name : prodId}" from catalog.`, "warning");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    }
+  };
+
+  // CRUD actions for Projects
+  const openProjectForm = (mode: "add" | "edit", item?: Project) => {
+    setFormMode(mode);
+    setIsFormOpen(true);
+    if (mode === "edit" && item) {
+      setActiveEditingId(item.id);
+      setProjTitle(item.title);
+      setProjCategory(item.category);
+      setProjLocation(item.location);
+      setProjClient(item.client);
+      setProjTimeline(item.timeline);
+      setProjDescription(item.description);
+      setProjBeforeImage(item.beforeImage);
+      setProjAfterImage(item.afterImage);
+      setProjTechUsed(item.techUsed ? item.techUsed.join(", ") : "");
+      setProjInstallationSize(item.installationSize || "");
+      setProjHighlights(item.projectHighlights ? item.projectHighlights.join(", ") : "");
+      setProjBenefits(item.customerBenefits ? item.customerBenefits.join(", ") : "");
+      setProjReviewText(item.review ? item.review.text : "");
+      setProjReviewer(item.review ? item.review.reviewer : "");
+      setProjReviewerRole(item.review ? item.review.role : "");
+      setProjRating(item.review ? item.review.rating : 5);
+    } else {
+      setActiveEditingId(null);
+      setProjTitle("");
+      setProjCategory("Storefronts & Entrances");
+      setProjLocation("");
+      setProjClient("");
+      setProjTimeline("");
+      setProjDescription("");
+      setProjBeforeImage("");
+      setProjAfterImage("");
+      setProjTechUsed("O-Series Film");
+      setProjInstallationSize("");
+      setProjHighlights("");
+      setProjBenefits("");
+      setProjReviewText("");
+      setProjReviewer("");
+      setProjReviewerRole("");
+      setProjRating(5);
+    }
+  };
+
+  const handleProjectSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!projTitle) return;
+
+    const projData: Project = {
+      id: activeEditingId || projTitle.toLowerCase().replace(/\s+/g, "-"),
+      title: projTitle,
+      category: projCategory,
+      location: projLocation,
+      client: projClient,
+      timeline: projTimeline,
+      description: projDescription,
+      beforeImage: projBeforeImage || "/src/assets/images/logo.png",
+      afterImage: projAfterImage || "/src/assets/images/logo.png",
+      techUsed: projTechUsed.split(",").map(t => t.trim()).filter(Boolean),
+      installationSize: projInstallationSize || undefined,
+      projectHighlights: projHighlights ? projHighlights.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+      customerBenefits: projBenefits ? projBenefits.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+      review: projReviewText ? {
+        text: projReviewText,
+        reviewer: projReviewer || "Client Representative",
+        role: projReviewerRole || "Project Manager",
+        rating: Number(projRating) || 5
+      } : undefined
+    };
+
+    if (formMode === "add") {
+      onUpdateProjects([...projects, projData]);
+      setSuccessMsg("Project added to interactive portfolio!");
+      logActivity("PROJECT_ADD", `Added project "${projData.title}" to portfolio.`);
+    } else {
+      onUpdateProjects(projects.map(p => p.id === activeEditingId ? projData : p));
+      setSuccessMsg("Project details updated successfully!");
+      logActivity("PROJECT_EDIT", `Updated portfolio project "${projData.title}".`);
+    }
+
+    setIsFormOpen(false);
+    setTimeout(() => setSuccessMsg(""), 4000);
+  };
+
+  const handleDeleteProject = (projId: string) => {
+    if (confirm("Are you sure you want to permanently remove this project?")) {
+      const proj = projects.find(p => p.id === projId);
+      onUpdateProjects(projects.filter(p => p.id !== projId));
+      setSuccessMsg("Project deleted from portfolio.");
+      logActivity("PROJECT_DELETE", `Deleted project "${proj ? proj.title : projId}" from portfolio.`, "warning");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    }
+  };
+
+  // CRUD actions for Applications
+  const openApplicationForm = (mode: "add" | "edit", item?: ApplicationItem) => {
+    setFormMode(mode);
+    setIsFormOpen(true);
+    if (mode === "edit" && item) {
+      setActiveEditingId(item.id);
+      setAppTitle(item.title);
+      setAppTagline(item.tagline);
+      setAppOverview(item.overview);
+      setAppBenefits(item.benefits ? item.benefits.join(", ") : "");
+      setAppRecommendedProducts(item.recommendedProducts ? item.recommendedProducts.join(", ") : "");
+      setAppCaseStudyTitle(item.caseStudy ? item.caseStudy.title : "");
+      setAppChallenge(item.caseStudy ? item.caseStudy.challenge : "");
+      setAppSolution(item.caseStudy ? item.caseStudy.solution : "");
+      setAppResult(item.caseStudy ? item.caseStudy.result : "");
+    } else {
+      setActiveEditingId(null);
+      setAppTitle("");
+      setAppTagline("");
+      setAppOverview("");
+      setAppBenefits("");
+      setAppRecommendedProducts("");
+      setAppCaseStudyTitle("");
+      setAppChallenge("");
+      setAppSolution("");
+      setAppResult("");
+    }
+  };
+
+  const handleApplicationSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!appTitle) return;
+
+    const appData: ApplicationItem = {
+      id: activeEditingId || appTitle.toLowerCase().replace(/\s+/g, "-"),
+      title: appTitle,
+      tagline: appTagline,
+      overview: appOverview,
+      benefits: appBenefits.split(",").map(t => t.trim()).filter(Boolean),
+      recommendedProducts: appRecommendedProducts.split(",").map(t => t.trim()).filter(Boolean),
+      gallery: [],
+      caseStudy: {
+        title: appCaseStudyTitle || "Landmark Implementation",
+        challenge: appChallenge || "Standard structural facade installation",
+        solution: appSolution || "Reefilm Smart glass screen configuration",
+        result: appResult || "Enhanced aesthetic value and functional visual output"
+      }
+    };
+
+    if (formMode === "add") {
+      onUpdateApplications([...applications, appData]);
+      setSuccessMsg("Application added to catalog!");
+      logActivity("APPLICATION_ADD", `Added architectural application "${appData.title}".`);
+    } else {
+      onUpdateApplications(applications.map(a => a.id === activeEditingId ? appData : a));
+      setSuccessMsg("Application details updated successfully!");
+      logActivity("APPLICATION_EDIT", `Updated architectural application "${appData.title}".`);
+    }
+
+    setIsFormOpen(false);
+    setTimeout(() => setSuccessMsg(""), 4000);
+  };
+
+  const handleDeleteApplication = (appId: string) => {
+    if (confirm("Are you sure you want to permanently delete this application?")) {
+      const app = applications.find(a => a.id === appId);
+      onUpdateApplications(applications.filter(a => a.id !== appId));
+      setSuccessMsg("Application removed successfully.");
+      logActivity("APPLICATION_DELETE", `Deleted architectural application "${app ? app.title : appId}".`, "warning");
       setTimeout(() => setSuccessMsg(""), 4000);
     }
   };
@@ -1893,6 +2090,8 @@ export default function AdminDashboard({
                   { id: "dashboard", label: "Dashboard Hub", icon: BarChart, count: null },
                   { id: "setup", label: "System Setup", icon: Sliders, count: null },
                   { id: "products", label: "Products Catalog", icon: Layers, count: products.length },
+                  { id: "projects", label: "Interactive Portfolio", icon: Building2, count: projects.length },
+                  { id: "applications", label: "Architectural Apps", icon: Cpu, count: applications.length },
                   { id: "gallery", label: "Project Gallery", icon: ImageIcon, count: galleryItems.length },
                   { id: "downloads", label: "Technical Docs", icon: Download, count: downloads.length },
                   { id: "media_library", label: "Media Library", icon: FileUp, count: mediaLibrary.length },
@@ -3159,6 +3358,234 @@ export default function AdminDashboard({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PROJECTS MANAGEMENT MODULE */}
+              {activeSubTab === "projects" && (
+                <div className="bg-neutral-950 border border-white/10 rounded-2xl p-6 space-y-6 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div>
+                      <h2 className="text-lg font-black uppercase text-white">Interactive Portfolio Projects</h2>
+                      <p className="text-xs text-gray-500">Manage real commercial facade showcase references with interactive before/after visual transformation states.</p>
+                    </div>
+                    <button
+                      onClick={() => openProjectForm("add")}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Add Project Reference
+                    </button>
+                  </div>
+
+                  {/* Form toggle drawer */}
+                  {isFormOpen && activeSubTab === "projects" && (
+                    <form onSubmit={handleProjectSubmit} className="bg-black/60 border border-white/10 p-5 rounded-2xl space-y-4 animate-fade-in">
+                      <h3 className="text-xs font-bold uppercase tracking-wider font-mono text-red-500">{formMode === "add" ? "Register Project Showcase" : "Edit Project Showcase"}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Project Title</label>
+                          <input type="text" required placeholder="e.g. Landmark Retail Facade" value={projTitle} onChange={(e) => setProjTitle(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Category</label>
+                          <select value={projCategory} onChange={(e) => setProjCategory(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none">
+                            <option>Storefronts & Entrances</option>
+                            <option>Corporate Offices</option>
+                            <option>Shopping Malls</option>
+                            <option>Transit Hubs</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Client / Partner Name</label>
+                          <input type="text" placeholder="e.g. DLF CyberCity" value={projClient} onChange={(e) => setProjClient(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Location (City, India)</label>
+                          <input type="text" placeholder="e.g. Gurugram, Delhi NCR" value={projLocation} onChange={(e) => setProjLocation(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Timeline / Year</label>
+                          <input type="text" placeholder="e.g. Q4 2025" value={projTimeline} onChange={(e) => setProjTimeline(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Installation Size</label>
+                          <input type="text" placeholder="e.g. 12.0m x 4.5m (54m²)" value={projInstallationSize} onChange={(e) => setProjInstallationSize(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Project Description</label>
+                          <textarea rows={3} required placeholder="Detailed breakdown of the structural glass integration..." value={projDescription} onChange={(e) => setProjDescription(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Technologies Deployed (comma separated)</label>
+                          <input type="text" placeholder="e.g. O-Series Film, Reefilm-Pro Sync Hub, CNC Mounting" value={projTechUsed} onChange={(e) => setProjTechUsed(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Project Highlights (comma separated)</label>
+                          <input type="text" placeholder="e.g. 85% Transparency maintained, Daylight-visible 5500 nits, Wet-lamination completed in 48 hours" value={projHighlights} onChange={(e) => setProjHighlights(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Customer Benefits (comma separated)</label>
+                          <input type="text" placeholder="e.g. 35% Increase in footfall, zero structural glass alterations required, lower HVAC heat loads" value={projBenefits} onChange={(e) => setProjBenefits(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1">
+                          <ImageUploader label="Before Image (Pure Structural Glass)" value={projBeforeImage} onChange={setProjBeforeImage} />
+                        </div>
+                        <div className="space-y-1">
+                          <ImageUploader label="After Image (100% Active Display)" value={projAfterImage} onChange={setProjAfterImage} />
+                        </div>
+
+                        <div className="border-t border-white/5 pt-4 md:col-span-2 space-y-4">
+                          <h4 className="text-[10px] font-mono text-red-500 uppercase font-bold">Embedded Client Testimonial (Optional)</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Testimonial Review Text</label>
+                              <textarea rows={2} placeholder="The transparent lamination film maintains complete visibility while unlocking our storefront advertising potential..." value={projReviewText} onChange={(e) => setProjReviewText(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Reviewer Name</label>
+                              <input type="text" placeholder="Rajesh Malhotra" value={projReviewer} onChange={(e) => setProjReviewer(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Reviewer Role</label>
+                              <input type="text" placeholder="Head of Retail Operations" value={projReviewerRole} onChange={(e) => setProjReviewerRole(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Review Rating (1-5)</label>
+                              <input type="number" min={1} max={5} value={projRating} onChange={(e) => setProjRating(Number(e.target.value))} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 border border-white/10 rounded-lg text-xs font-bold uppercase text-gray-400 hover:text-white cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-xs font-bold uppercase text-white cursor-pointer shadow-md shadow-red-600/15">Save Project</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* List projects */}
+                  <div className="space-y-4">
+                    {projects.map((proj) => (
+                      <div key={proj.id} className="border border-white/5 bg-black p-4 rounded-xl flex items-center justify-between text-xs hover:border-white/15 transition-all">
+                        <div className="flex items-center space-x-3">
+                          <img src={proj.afterImage || proj.beforeImage} className="w-12 h-8 rounded object-cover border border-white/10" referrerPolicy="no-referrer" />
+                          <div>
+                            <span className="font-bold text-white block uppercase tracking-wider">{proj.title}</span>
+                            <span className="text-[10px] text-red-500 font-mono uppercase">{proj.category} • {proj.location} • {proj.client}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button onClick={() => openProjectForm("edit", proj)} className="p-1.5 border border-white/5 bg-white/5 rounded-lg hover:text-white text-gray-400 cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleDeleteProject(proj.id)} className="p-1.5 border border-white/5 bg-white/5 rounded-lg hover:text-red-500 hover:border-red-500/25 text-gray-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="text-center py-10 text-gray-500 font-mono text-xs">No project references registered.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* APPLICATIONS MANAGEMENT MODULE */}
+              {activeSubTab === "applications" && (
+                <div className="bg-neutral-950 border border-white/10 rounded-2xl p-6 space-y-6 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div>
+                      <h2 className="text-lg font-black uppercase text-white">Architectural Applications CMS</h2>
+                      <p className="text-xs text-gray-500">Configure target commercial glass-facade sectors, customized ROI benefits, and specialized case studies.</p>
+                    </div>
+                    <button
+                      onClick={() => openApplicationForm("add")}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Add Application Segment
+                    </button>
+                  </div>
+
+                  {/* Form toggle drawer */}
+                  {isFormOpen && activeSubTab === "applications" && (
+                    <form onSubmit={handleApplicationSubmit} className="bg-black/60 border border-white/10 p-5 rounded-2xl space-y-4 animate-fade-in">
+                      <h3 className="text-xs font-bold uppercase tracking-wider font-mono text-red-500">{formMode === "add" ? "Create Application Sector" : "Edit Application Sector"}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Sector Title / Industry Name</label>
+                          <input type="text" required placeholder="e.g. Automotive Showrooms & High-Street Retail" value={appTitle} onChange={(e) => setAppTitle(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Tagline</label>
+                          <input type="text" required placeholder="e.g. Unlocking premium high-visibility storefront advertising..." value={appTagline} onChange={(e) => setAppTagline(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Sector Overview / Detailed Guide</label>
+                          <textarea rows={3} required placeholder="Detailed guide outlining how transparent LED films are integrated..." value={appOverview} onChange={(e) => setAppOverview(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Sector Specific Advantages (comma separated)</label>
+                          <input type="text" placeholder="e.g. 92% Light transmission, Daylight-visible 5500 nits brightness, No structural frame alterations required" value={appBenefits} onChange={(e) => setAppBenefits(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Recommended Tech Series (comma separated)</label>
+                          <input type="text" placeholder="e.g. O-Series Film, I-F Series Flexible Wrap" value={appRecommendedProducts} onChange={(e) => setAppRecommendedProducts(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+
+                        <div className="border-t border-white/5 pt-4 md:col-span-2 space-y-4">
+                          <h4 className="text-[10px] font-mono text-red-500 uppercase font-bold">India Showcase Case Study</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Case Study Title / Installation Landmark</label>
+                              <input type="text" placeholder="e.g. High-Street Retail Glass Transformation" value={appCaseStudyTitle} onChange={(e) => setAppCaseStudyTitle(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">The Challenge</label>
+                              <textarea rows={2} placeholder="A 20m high glass atrium required dynamic branding but traditional LED panels completely blocked sunlight..." value={appChallenge} onChange={(e) => setAppChallenge(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">The Solution</label>
+                              <textarea rows={2} placeholder="Wet-laminated 85m² of Reefilm-O series 6.25mm transparent film directly onto structural glass panels..." value={appSolution} onChange={(e) => setAppSolution(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">The Proven Outcome</label>
+                              <input type="text" placeholder="e.g. High-contrast marketing visible from 500m away, full daylight maintained indoors" value={appResult} onChange={(e) => setAppResult(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 border border-white/10 rounded-lg text-xs font-bold uppercase text-gray-400 hover:text-white cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-xs font-bold uppercase text-white cursor-pointer shadow-md shadow-red-600/15">Save Application Segment</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* List applications */}
+                  <div className="space-y-4">
+                    {applications.map((app) => (
+                      <div key={app.id} className="border border-white/5 bg-black p-4 rounded-xl flex items-center justify-between text-xs hover:border-white/15 transition-all">
+                        <div>
+                          <span className="font-bold text-white block uppercase tracking-wider">{app.title}</span>
+                          <span className="text-[10px] text-gray-500 font-mono italic block truncate max-w-lg">{app.tagline}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button onClick={() => openApplicationForm("edit", app)} className="p-1.5 border border-white/5 bg-white/5 rounded-lg hover:text-white text-gray-400 cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleDeleteApplication(app.id)} className="p-1.5 border border-white/5 bg-white/5 rounded-lg hover:text-red-500 hover:border-red-500/25 text-gray-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {applications.length === 0 && (
+                      <div className="text-center py-10 text-gray-500 font-mono text-xs">No application sectors configured.</div>
+                    )}
                   </div>
                 </div>
               )}
