@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
+import { INITIAL_GALLERY_ITEMS } from "../data";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -482,6 +483,7 @@ export default function AdminDashboard({
   const [gClient, setGClient] = useState("");
   const [gTimeline, setGTimeline] = useState("");
   const [gIsFeatured, setGIsFeatured] = useState(false);
+  const [gIsDemo, setGIsDemo] = useState(false);
 
   // 3. Download Form fields
   const [dTitle, setDTitle] = useState("");
@@ -1391,6 +1393,7 @@ export default function AdminDashboard({
       setGClient(item.client || "");
       setGTimeline(item.timeline || "");
       setGIsFeatured(!!item.is_featured);
+      setGIsDemo(!!item.isDemo);
     } else {
       setActiveEditingId(null);
       setGTitle("");
@@ -1406,6 +1409,7 @@ export default function AdminDashboard({
       setGClient("");
       setGTimeline("");
       setGIsFeatured(false);
+      setGIsDemo(false);
     }
   };
 
@@ -1424,6 +1428,7 @@ export default function AdminDashboard({
       client: gClient || "Reefilm India Client",
       timeline: gTimeline || "Completed",
       is_featured: gIsFeatured,
+      isDemo: gIsDemo,
       created_at: new Date().toISOString(),
       specs: {
         layers: gLayers,
@@ -2983,6 +2988,82 @@ export default function AdminDashboard({
                     </button>
                   </div>
 
+                  {/* Demo Content Management Panel */}
+                  <div className="bg-neutral-900/30 border border-white/5 rounded-xl p-4 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-xs font-bold uppercase tracking-wider font-mono text-amber-500 flex items-center gap-1.5">
+                          <span>Gallery → Demo Content</span>
+                        </h3>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Manage pre-loaded premium architectural and LED display sample images.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            const newHide = !settings.hideDemoGallery;
+                            onUpdateSettings({ ...settings, hideDemoGallery: newHide });
+                            setSuccessMsg(newHide ? "Demo gallery hidden on public site!" : "Demo gallery visible on public site!");
+                            logActivity("SETTINGS_EDIT", `${newHide ? "Disabled" : "Enabled"} demo gallery fallback view on public site.`);
+                            setTimeout(() => setSuccessMsg(""), 4000);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border cursor-pointer ${
+                            settings.hideDemoGallery
+                              ? "bg-amber-600/10 border-amber-500/30 text-amber-400 hover:bg-amber-600/20"
+                              : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
+                          }`}
+                        >
+                          {settings.hideDemoGallery ? "Show Demo Content" : "Hide Demo Content"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete all demo content images? This will permanently remove the sample projects from Supabase database.")) {
+                              const remaining = galleryItems.filter(g => !g.isDemo);
+                              onUpdateGalleryItems(remaining);
+                              setSuccessMsg("All demo items removed successfully!");
+                              logActivity("GALLERY_DELETE", "Permanently removed all demo content items.", "warning");
+                              setTimeout(() => setSuccessMsg(""), 4000);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-red-600/10 border border-red-500/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Delete Demo Content
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm("Restore high-quality default sample images? This will merge them back into your gallery database.")) {
+                              const currentIds = new Set(galleryItems.map(g => g.id));
+                              const toAdd = INITIAL_GALLERY_ITEMS.filter(item => !currentIds.has(item.id));
+                              onUpdateGalleryItems([...galleryItems, ...toAdd]);
+                              setSuccessMsg("Default demo gallery content restored!");
+                              logActivity("GALLERY_ADD", "Restored default demo gallery content.");
+                              setTimeout(() => setSuccessMsg(""), 4000);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Restore Demo Content
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5 pt-3 flex flex-col sm:flex-row sm:items-center justify-between text-[10px] font-mono text-gray-500 gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span>
+                          Status: <strong className="text-white">{galleryItems.filter(g => g.isDemo).length} Demo Items</strong> in database •{" "}
+                          <strong className="text-white">{galleryItems.filter(g => !g.isDemo).length} Real Items</strong>
+                        </span>
+                      </div>
+                      {galleryItems.filter(g => !g.isDemo).length > 0 && (
+                        <span className="bg-amber-600/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[9px] uppercase font-bold">
+                          ★ Tip: Since you have real projects uploaded, you can safely remove all demo content with one click!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Form toggle drawer */}
                   {isFormOpen && activeSubTab === "gallery" && (
                     <form onSubmit={handleGallerySubmit} className="bg-black/60 border border-white/10 p-5 rounded-2xl space-y-4 animate-fade-in">
@@ -3050,10 +3131,14 @@ export default function AdminDashboard({
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Timeline / Year</label>
                           <input type="text" placeholder="e.g. Q4 2025" value={gTimeline} onChange={(e) => setGTimeline(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
                         </div>
-                        <div className="space-y-1 flex items-center md:col-span-2 pt-2">
+                        <div className="space-y-1 flex flex-col sm:flex-row gap-4 md:col-span-2 pt-2">
                           <label className="flex items-center space-x-2 text-[10px] font-mono text-gray-400 uppercase font-bold cursor-pointer">
                             <input type="checkbox" checked={gIsFeatured} onChange={(e) => setGIsFeatured(e.target.checked)} className="rounded bg-neutral-950 border-white/10 text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
                             <span>Feature on Homepage Gallery</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-[10px] font-mono text-amber-500 uppercase font-bold cursor-pointer">
+                            <input type="checkbox" checked={gIsDemo} onChange={(e) => setGIsDemo(e.target.checked)} className="rounded bg-neutral-950 border-white/10 text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer" />
+                            <span>Mark as Demo Content</span>
                           </label>
                         </div>
                       </div>

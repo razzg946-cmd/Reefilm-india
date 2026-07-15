@@ -412,6 +412,7 @@ CREATE TABLE IF NOT EXISTS gallery (
   client TEXT,
   timeline TEXT,
   is_featured BOOLEAN DEFAULT false,
+  is_demo BOOLEAN DEFAULT false,
   description TEXT,
   specs JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -924,6 +925,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'is_featured') THEN
       ALTER TABLE gallery ADD COLUMN is_featured BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'is_demo') THEN
+      ALTER TABLE gallery ADD COLUMN is_demo BOOLEAN DEFAULT false;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'image_url') THEN
       ALTER TABLE gallery ADD COLUMN image_url TEXT;
@@ -2073,6 +2077,7 @@ app.post("/api/cms/sync/:table", requireSession, async (req, res) => {
             client: item.client || "",
             timeline: item.timeline || "",
             is_featured: !!item.is_featured,
+            is_demo: !!item.isDemo || !!item.is_demo,
             created_at: item.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString()
           };

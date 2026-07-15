@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { PlayCircle, X, Sliders, Cpu, Eye, Layers, Check } from "lucide-react";
-import { GalleryItem } from "../types";
+import { GalleryItem, WebsiteSettings } from "../types";
 
 interface GalleryViewProps {
   galleryItems: GalleryItem[];
+  settings?: WebsiteSettings;
 }
 
-export default function GalleryView({ galleryItems }: GalleryViewProps) {
+export default function GalleryView({ galleryItems, settings }: GalleryViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [simulateBrightness, setSimulateBrightness] = useState<number>(85);
@@ -21,9 +22,25 @@ export default function GalleryView({ galleryItems }: GalleryViewProps) {
     "Hardware & Installation"
   ];
 
+  // Separate real and demo items
+  const realItems = galleryItems.filter(item => !item.isDemo);
+  const demoItems = galleryItems.filter(item => item.isDemo);
+
+  // Determine what items to display based on whether real items exist
+  let displayedItems: GalleryItem[] = [];
+  if (realItems.length > 0) {
+    if (settings?.hideDemoGallery) {
+      displayedItems = realItems;
+    } else {
+      displayedItems = [...realItems, ...demoItems];
+    }
+  } else {
+    displayedItems = demoItems;
+  }
+
   const filteredItems = selectedCategory === "All"
-    ? galleryItems
-    : galleryItems.filter((item) => item.category === selectedCategory);
+    ? displayedItems
+    : displayedItems.filter((item) => item.category === selectedCategory);
 
   return (
     <div id="gallery-page" className="bg-black text-white font-sans min-h-screen">
@@ -70,6 +87,11 @@ export default function GalleryView({ galleryItems }: GalleryViewProps) {
                 onClick={() => setSelectedItem(item)}
                 className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-white/10 bg-neutral-900/50 cursor-pointer shadow-lg hover:border-red-500/30 transition-all duration-300"
               >
+                {item.isDemo && (
+                  <div className="absolute top-3 right-3 z-10 bg-amber-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[9px] font-mono uppercase font-bold tracking-wider shadow">
+                    Demo Content
+                  </div>
+                )}
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}

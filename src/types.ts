@@ -142,6 +142,7 @@ export interface GalleryItem {
   timeline?: string;
   is_featured?: boolean;
   created_at?: string;
+  isDemo?: boolean;
   specs: {
     dimensions: string;
     controller: string;
@@ -170,6 +171,7 @@ export interface WebsiteSettings {
   hours: string;
   logoUrl?: string;
   footerText?: string;
+  hideDemoGallery?: boolean;
   // Hero Badge Options
   showHeroBadge?: boolean;
   heroBadgeColor?: string;

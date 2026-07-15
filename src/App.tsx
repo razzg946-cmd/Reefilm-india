@@ -364,7 +364,20 @@ export default function App() {
     return TESTIMONIALS;
   });
 
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("reefilm_gallery");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Error reading gallery from localStorage:", e);
+    }
+    return INITIAL_GALLERY_ITEMS;
+  });
 
   const [team, setTeam] = useState<TeamMember[]>(() => {
     try {
@@ -478,9 +491,10 @@ export default function App() {
   useEffect(() => {
     if (!isStartupSyncComplete.current) return;
     try {
+      localStorage.setItem("reefilm_gallery", JSON.stringify(gallery));
       syncGallery(gallery);
     } catch (e) {
-      console.error("Error syncing gallery to Supabase:", e);
+      console.error("Error writing gallery to localStorage or syncing:", e);
     }
   }, [gallery]);
 
@@ -562,7 +576,11 @@ export default function App() {
         if (dbBlogs && dbBlogs.length > 0) setBlogs(dbBlogs);
         if (dbDownloads && dbDownloads.length > 0) setDownloads(dbDownloads);
         if (dbTestimonials && dbTestimonials.length > 0) setTestimonials(dbTestimonials);
-        if (dbGallery) setGallery(dbGallery);
+        if (dbGallery && dbGallery.length > 0) {
+          setGallery(dbGallery);
+        } else {
+          setGallery(INITIAL_GALLERY_ITEMS);
+        }
         if (dbTeam && dbTeam.length > 0) setTeam(dbTeam);
         if (dbSettings) setSettings(dbSettings);
         if (dbAdminUsers && dbAdminUsers.length > 0) setAdminUsers(dbAdminUsers);
@@ -1052,7 +1070,7 @@ export default function App() {
 
         {/* TAB 6: GALLERY */}
         {currentTab === "gallery" && (
-          <GalleryView galleryItems={gallery} />
+          <GalleryView galleryItems={gallery} settings={settings} />
         )}
 
         {/* TAB 7: RESOURCES */}

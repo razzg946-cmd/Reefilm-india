@@ -43,6 +43,11 @@ async function secureServerSync(tableName: string, data: any): Promise<boolean> 
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        console.warn(`Admin session is invalid or expired. Clearing local session.`);
+        localStorage.removeItem("reefilm_admin_session");
+        window.dispatchEvent(new Event("storage"));
+      }
       const errData = await response.json().catch(() => ({}));
       console.error(`Secure server sync for table '${tableName}' failed:`, errData.message || response.statusText);
       return false;
@@ -106,7 +111,8 @@ export async function fetchGallery(defaultData: GalleryItem[]): Promise<GalleryI
     return data.map(item => ({
       ...item,
       imageUrl: item.imageUrl || (item as any).image_url || "",
-      videoUrl: item.videoUrl || (item as any).video_url || ""
+      videoUrl: item.videoUrl || (item as any).video_url || "",
+      isDemo: item.isDemo !== undefined ? !!item.isDemo : !!(item as any).is_demo
     }));
   }
   return data;

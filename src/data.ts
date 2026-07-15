@@ -591,6 +591,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/luxury_brand_storefront_1782555321941.jpg",
     location: "High-Street Luxury Hub, Chennai",
     description: "Seamless frameless glass storefront showcase featuring 90% transparent active lamination for crystal-clear retail interior views.",
+    isDemo: true,
     specs: {
       dimensions: "8.0m x 3.5m",
       controller: "Reefilm-Pro Sync Hub",
@@ -605,6 +606,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/automobile_showroom_1782555337430.jpg",
     location: "Mercedes-Benz Hub, OMR Chennai",
     description: "Massive high-visibility storefront glass display wall optimized for high-traffic zones and maximum daylight penetration.",
+    isDemo: true,
     specs: {
       dimensions: "12.0m x 4.0m",
       controller: "Sync-Master Multi-Core",
@@ -619,6 +621,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/airport_digital_glass_1782555351528.jpg",
     location: "Chennai International Airport",
     description: "Structural integrated glass display panel presenting real-time flight schedules with zero structural frame clutter.",
+    isDemo: true,
     specs: {
       dimensions: "4.0m x 2.5m",
       controller: "Embedded ARM-9 Core",
@@ -633,6 +636,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/restaurant_glass_display_1782555370281.jpg",
     location: "Choolaah Signature Diner, Chennai",
     description: "Fluid architectural glass room divider blending high-end transparency with modern aesthetic separation.",
+    isDemo: true,
     specs: {
       dimensions: "3.0m x 2.2m",
       controller: "Standalone WiFi Driver",
@@ -647,6 +651,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/museum_transparent_display_1782555394346.jpg",
     location: "Showroom 366 Studio, OMR Chennai",
     description: "90-degree curved glass corner panel exhibiting superior structural safety and custom curved metal track fitting.",
+    isDemo: true,
     specs: {
       dimensions: "6.0m x 3.0m (Curved)",
       controller: "Direct Bus Controller",
@@ -661,6 +666,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     imageUrl: "/src/assets/images/before_after_install_1782555381383.jpg",
     location: "Reefilm Commercial Testing Site",
     description: "Highlighting near-perfect light transmittance and zero color aberration on custom glass setups.",
+    isDemo: true,
     specs: {
       dimensions: "5.0m x 3.0m",
       controller: "Dual-Path Signal Hub",
@@ -719,6 +725,7 @@ export const INITIAL_SETTINGS: WebsiteSettings = {
   hours: "Monday - Saturday: 10:00 AM - 7:00 PM (IST)",
   logoUrl: "",
   footerText: "© 2026 Reefilm India. All Rights Reserved. Premium Transparent LED Film Display Solutions Across India.",
+  hideDemoGallery: false,
   // Hero Badge Options
   showHeroBadge: true,
   heroBadgeColor: "#FF5F6D",
