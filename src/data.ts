@@ -3,24 +3,12 @@ import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, 
 export const COMPANY_INFO = {
   name: "Reefilm India",
   owner: "Raj Gupta",
-  role: "Official Indian partner of REEFILM China",
+  role: "Independent Leader in Transparent LED Film Displays",
   tagline: "Premium Transparent LED Film Display Solutions Across India",
   established: "2021",
-  chinaOffice: {
-    title: "REEFILM CHINA HEAD OFFICE",
-    subtitle: "Manufacturing & R&D Center",
-    founder: "Mr. Heping Tong",
-    contactPerson: "Leon Dong",
-    phone: "+86 13620044973",
-    email: "leon@reefilm-led.com",
-    website: "www.reefilm-led.com",
-    address: "3F, Building 2, Zhiying Science Park, No.51 Xinhe Road, Dongguan City, Guangdong, China",
-    headquarters: "Dongguan, Guangdong, China",
-    business: "Transparent LED Film Solutions",
-  },
   indiaOffice: {
-    title: "REEFILM INDIA – CHENNAI",
-    subtitle: "Authorized Sales, Installation & Technical Support Partner",
+    title: "REEFILM INDIA HEADQUARTERS",
+    subtitle: "Premium Sales, Lamination & Technical Support Centre",
     contactPerson: "Raj Gupta",
     phone: "+91 8577917327",
     whatsapp: "+91 8577917327",
@@ -29,15 +17,14 @@ export const COMPANY_INFO = {
     hours: "Monday - Saturday: 10:00 AM - 7:00 PM (IST)",
   },
   leadershipTeam: [
-    { name: "Mr. Heping Tong", position: "Founder", department: "Executive Board", initials: "HT", bio: "Visionary industry pioneer with over two decades of engineering and manufacturing leadership in premium optoelectronic displays." },
-    { name: "Eunice", position: "Sales Director", department: "Global Sales", initials: "EU", bio: "Leading global market penetration and client-relations, streamlining large-scale B2B visual facade projects." },
-    { name: "Yun", position: "R&D Director", department: "Research & Development", initials: "YN", bio: "Spearheading patent acquisitions, optical substrate upgrades, and state-of-the-art micro-circuit transparency advancements." },
-    { name: "Amber", position: "Operations Director", department: "Global Operations", initials: "AM", bio: "Supervising cleanroom certifications, production schedules, SMT precision control, and supply-chain logistics." },
+    { name: "Raj Gupta", position: "Founder & Director", department: "Executive Board", initials: "RG", bio: "Visionary leader driving transparent display innovation and nationwide enterprise deployments across India." },
+    { name: "Amit Patel", position: "Technical Director", department: "Engineering & SMT", initials: "AP", bio: "Leading state-of-the-art on-site lamination, CAD plotting, and specialized glass-calibration setups." },
+    { name: "Priya Sharma", position: "Operations Director", department: "Supply & Logistics", initials: "PS", bio: "Managing custom regional storage, swift component deliveries, and site safety certifications." },
   ],
   trustMessage: {
     manufacturing: "Premium quality advanced self-adhesive transparent LED film display solutions",
-    support: "Reefilm India Chennai (On-site installation, sales, calibration, and after-sales support throughout India)",
-    summary: "Reefilm India is the official Indian partner of REEFILM China, delivering advanced self-adhesive transparent LED film display solutions, professional lamination, sales, and technical support throughout India."
+    support: "Reefilm India (On-site installation, sales, calibration, and warranty support throughout India)",
+    summary: "Reefilm India is the country's independent leader in self-adhesive transparent LED film displays, offering professional lamination, nationwide sales, and technical support."
   },
   email: "razzg946@gmail.com",
   phone: "+91 8577917327",
@@ -598,7 +585,7 @@ export const FAQS: FAQItem[] = [
 
 export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
   {
-    id: "luxury-storefront",
+    id: "10000000-0000-0000-0000-000000000001",
     title: "Luxury Retail Storefront Facade",
     category: "Storefronts & Entrances",
     imageUrl: "/src/assets/images/luxury_brand_storefront_1782555321941.jpg",
@@ -612,7 +599,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     }
   },
   {
-    id: "car-showroom",
+    id: "10000000-0000-0000-0000-000000000002",
     title: "Automobile Showroom Glass Wall",
     category: "Storefronts & Entrances",
     imageUrl: "/src/assets/images/automobile_showroom_1782555337430.jpg",
@@ -626,7 +613,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     }
   },
   {
-    id: "airport-signage",
+    id: "10000000-0000-0000-0000-000000000003",
     title: "Airport Terminal Information Glass Screen",
     category: "Digital Displays",
     imageUrl: "/src/assets/images/airport_digital_glass_1782555351528.jpg",
@@ -640,7 +627,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     }
   },
   {
-    id: "restaurant-partition",
+    id: "10000000-0000-0000-0000-000000000004",
     title: "Aesthetic Restaurant Glass Partition",
     category: "Interior Glass Partitioning",
     imageUrl: "/src/assets/images/restaurant_glass_display_1782555370281.jpg",
@@ -654,7 +641,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     }
   },
   {
-    id: "museum-curved",
+    id: "10000000-0000-0000-0000-000000000005",
     title: "Curved Exhibition Glass Corner",
     category: "Interior Glass Partitioning",
     imageUrl: "/src/assets/images/museum_transparent_display_1782555394346.jpg",
@@ -668,7 +655,7 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
     }
   },
   {
-    id: "before-after-installation",
+    id: "10000000-0000-0000-0000-000000000006",
     title: "Lamination Calibration Screen",
     category: "Hardware & Installation",
     imageUrl: "/src/assets/images/before_after_install_1782555381383.jpg",
@@ -685,37 +672,40 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
 
 export const INITIAL_TEAM_MEMBERS: TeamMember[] = [
   {
-    id: "ld",
-    name: "Leon Dong",
-    position: "Sales Manager",
-    department: "Global Sales",
-    initials: "LD",
-    bio: "Global Sales, Customer Relations, International Business Development.",
-    email: "leon@reefilm-led.com"
+    id: "rg",
+    name: "Raj Gupta",
+    position: "Founder & Director",
+    department: "Executive Management",
+    initials: "RG",
+    bio: "Visionary corporate leader driving architectural transparent display innovation and nationwide enterprise expansion across India.",
+    email: "razzg946@gmail.com"
   },
   {
-    id: "eu",
-    name: "Eunice",
-    position: "Sales",
-    department: "International Sales",
-    initials: "E",
-    bio: "Supports international customer communication, quotations, and sales coordination."
+    id: "ap",
+    name: "Amit Patel",
+    position: "Technical Lead",
+    department: "Engineering & Alignment",
+    initials: "AP",
+    bio: "Supervising certified on-site lamination, complex CAD mapping, and multi-display calibration desks.",
+    email: "amit.patel@reefilm.in"
   },
   {
-    id: "yn",
-    name: "Yun",
-    position: "Research & Development",
-    department: "R&D Department",
-    initials: "Y",
-    bio: "Responsible for product innovation, engineering development, and technology improvement."
+    id: "ps",
+    name: "Priya Sharma",
+    position: "Operations Manager",
+    department: "Supply & Logistics",
+    initials: "PS",
+    bio: "Coordinating customized component inventory, swift nationwide deliveries, and site readiness audits.",
+    email: "priya.sharma@reefilm.in"
   },
   {
-    id: "am",
-    name: "Amber",
-    position: "Operations",
-    department: "Global Operations",
-    initials: "A",
-    bio: "Responsible for production coordination, logistics, order processing, and operational management."
+    id: "vs",
+    name: "Vikram Singh",
+    position: "Installation Manager",
+    department: "On-Site Deployment",
+    initials: "VS",
+    bio: "Overseeing advanced structural glass alignments, power systems, and physical lamination runs.",
+    email: "vikram.singh@reefilm.in"
   }
 ];
 
@@ -728,11 +718,27 @@ export const INITIAL_SETTINGS: WebsiteSettings = {
   address: "Chennai, India",
   hours: "Monday - Saturday: 10:00 AM - 7:00 PM (IST)",
   logoUrl: "",
-  footerText: "© 2026 Reefilm India. All Rights Reserved. Authorized Sales, Lamination & Technical Support Partner of REEFILM China.",
+  footerText: "© 2026 Reefilm India. All Rights Reserved. Premium Transparent LED Film Display Solutions Across India.",
+  // Hero Badge Options
+  showHeroBadge: true,
+  heroBadgeColor: "#FF5F6D",
+  heroBadgeBorder: "rgba(227, 6, 19, 0.5)",
+  heroBadgeIcon: "Shield",
+  // Navigation Menu Customization
+  navHome: "Home",
+  navAbout: "About Us",
+  navProducts: "Products",
+  navApplications: "Applications",
+  navProjects: "Projects",
+  navGallery: "Gallery",
+  navResources: "Resources",
+  navBlog: "Blog",
+  navContact: "Contact",
+  navQuote: "Request Quote",
   // Home Page CMS
-  homeHeroBanner: "Official Indian Partner of REEFILM China",
+  homeHeroBanner: "Independent Leader in Transparent LED Film Displays",
   homeHeroHeadline: "Transform Glass Into Brilliant Active LED Displays.",
-  homeHeroSubtitle: "We specialize in premium transparent LED film and customized digital display installations. Reefilm India is the country's dedicated partner, delivering advanced, paper-thin, transparent screens that retain beautiful glass visibility while offering stellar brightness, vibrant colours, and certified safety.",
+  homeHeroSubtitle: "We specialize in premium transparent LED film and customized digital display installations. Reefilm India is an independent Indian company, delivering advanced, paper-thin, transparent screens that retain beautiful glass visibility while offering stellar brightness, vibrant colours, and certified safety.",
   homeHeroCta1Text: "Explore Products",
   homeHeroCta1Tab: "products",
   homeHeroCta2Text: "Our Projects",
@@ -742,34 +748,34 @@ export const INITIAL_SETTINGS: WebsiteSettings = {
   // About Page CMS
   aboutHeaderTitle: "Corporate Profile & Team",
   aboutHeaderSubtitle: "ABOUT US",
-  aboutHeaderIntro: "The synergistic partnership linking Reefilm China's leading-edge manufacturing precision with Reefilm India's authorized sales, certified lamination, and nationwide technical support.",
-  aboutChinaTitle: "Global Manufacturer of Transparent LED Film",
-  aboutChinaSub: "01 / About Reefilm China",
-  aboutChinaText: "Reefilm China is a leading manufacturer specializing in Transparent LED Film Display technology for commercial, retail, architectural, transportation, and smart glass applications. The company focuses on innovation, high-transparency display technology, energy-efficient digital solutions, and premium engineering for global customers.",
-  aboutChinaFounder: "Mr. Heping Tong",
-  aboutChinaWebsite: "www.reefilm-led.com",
-  aboutChinaHeadquarters: "Dongguan, Guangdong, China",
-  aboutChinaBusiness: "Transparent LED Film Solutions",
+  aboutHeaderIntro: "Reefilm India is an independent Indian enterprise leading the country's architectural digital transformation with premium transparent LED lamination, advanced project engineering, and nationwide technical support.",
+  aboutChinaTitle: "Corporate Mission of Reefilm India",
+  aboutChinaSub: "01 / Independent Indian Pioneer",
+  aboutChinaText: "Reefilm India specializes in state-of-the-art Transparent LED Film Display technology for commercial, retail, architectural, hospitality, and smart glass applications across India. We deliver seamless lamination onto glass, providing high-brightness daylight advertising while retaining interior natural daylight.",
+  aboutChinaFounder: "Mr. Raj Gupta",
+  aboutChinaWebsite: "www.reefilm.in",
+  aboutChinaHeadquarters: "Chennai, Tamil Nadu, India",
+  aboutChinaBusiness: "Architectural Transparent LED Solutions",
   aboutTeamTitle: "Executive Management",
-  aboutTeamSub: "02 / Leadership & Global Team",
-  aboutTeamDesc: "Meet our premium global management team driving innovation, strategic sales, and operational excellence.",
-  aboutFactoryTitle: "Advanced Production & SMT Cleanroom Systems",
-  aboutFactorySub: "03 / Manufacturing Facility",
-  aboutFactoryDesc1: "Our high-tech manufacturing base is engineered to deliver pristine, highly transparent displays with micron-level precision. Operating in specialized dust-free environments, our SMT and lamination rows produce robust polymer substrates capable of continuous architectural operation.",
-  aboutFactoryDesc2: "Every batch of Transparent LED Film is subjected to a comprehensive battery of stress tests, including 72-hour cycle aging, extreme heat calibration, and UV resilience tests, ensuring long-term optical brilliance and physical stability.",
+  aboutTeamSub: "02 / Executive Leadership",
+  aboutTeamDesc: "Meet our professional team driving technical brilliance, customer success, and operational excellence across India.",
+  aboutFactoryTitle: "Advanced Production & Cleanroom Lamination Systems",
+  aboutFactorySub: "03 / Local Engineering Center",
+  aboutFactoryDesc1: "Our local technical integration division is engineered to coordinate pristine, high-transparency glass displays with micrometric accuracy. Operating under certified installation protocols, our lamination engineers produce durable polymer substrates optimized for continuous architectural lamination.",
+  aboutFactoryDesc2: "Every batch of Transparent LED Film undergoes a comprehensive battery of stress tests, including aging cycles and thermal calibration, ensuring long-term optical brilliance and physical stability under Indian weather conditions.",
   aboutServicesTitle: "Core Competencies & Services",
-  aboutServicesSub: "04 / Global Business",
-  aboutServicesDesc: "Expanding dynamic architecture and transparent digital signage interfaces globally.",
-  aboutIndiaTitle: "Authorized Sales, Installation & Technical Support Partner",
-  aboutIndiaSub: "05 / Reefilm India",
-  aboutIndiaDesc1: "Reefilm India is the Authorized Sales, Installation & Technical Support Partner for India.",
-  aboutIndiaDesc2: "We provide product consultation, project design support, installation guidance, technical assistance, and after-sales support across India. This unified framework guarantees that B2B clients, project architects, and system integrators receive elite factory warranty SLAs directly here in India.",
+  aboutServicesSub: "04 / India Business",
+  aboutServicesDesc: "Expanding dynamic architecture and transparent digital signage interfaces nationwide.",
+  aboutIndiaTitle: "Technical Engineering & Project Deployment",
+  aboutIndiaSub: "05 / Reefilm India Support",
+  aboutIndiaDesc1: "Reefilm India manages end-to-end site preparations, lamination calculations, and display alignment from our headquarters in Chennai.",
+  aboutIndiaDesc2: "We provide direct product consultation, customized grid drawings, certified SMT installation, local parts buffering, and prompt SLA support. This independent setup ensures that Indian retail and enterprise clients receive direct 12-month warranties and immediate response times.",
   aboutIndiaSLA1: "On-Site Lamination Audits & Site Preparation Services",
   aboutIndiaSLA2: "Local 1-Year Comprehensive Warranty & Parts Buffering",
   aboutIndiaSLA3: "Certified Calibration and Software Training (Chennai Desk)",
   aboutCtaTitle: "Need a customized mock-up or architectural proposal?",
   aboutCtaDesc: "Connect with our authorized engineering support cell in Chennai for free calculations and grid drawings.",
-  factoryAddress: "3F, Building 2, Zhiying Science Park, No.51 Xinhe Road, Dongguan City, Guangdong, China",
+  factoryAddress: "Chennai Tech Hub, OMR, Chennai, Tamil Nadu, 600096, India",
   googleMapEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3886.582455110363!2d80.2443657!3d13.060163!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a5266850aaef01f%3A0xc4e591739c91bbf4!2sChennai%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1782555000000!5m2!1sen!2sin",
   facebookUrl: "https://facebook.com/reefilm-led",
   linkedinUrl: "https://linkedin.com/company/reefilm-led",

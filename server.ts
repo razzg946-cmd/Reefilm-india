@@ -405,9 +405,13 @@ CREATE TABLE IF NOT EXISTS gallery (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   category TEXT NOT NULL,
-  "imageUrl" TEXT NOT NULL,
+  "imageUrl" TEXT,
+  image_url TEXT,
   "videoUrl" TEXT,
   location TEXT,
+  client TEXT,
+  timeline TEXT,
+  is_featured BOOLEAN DEFAULT false,
   description TEXT,
   specs JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -907,6 +911,27 @@ BEGIN
 
   END IF;
 END $$;
+
+-- Safeguard columns in gallery table for backward compatibility
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'gallery') THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'client') THEN
+      ALTER TABLE gallery ADD COLUMN client TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'timeline') THEN
+      ALTER TABLE gallery ADD COLUMN timeline TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'is_featured') THEN
+      ALTER TABLE gallery ADD COLUMN is_featured BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'gallery' AND column_name = 'image_url') THEN
+      ALTER TABLE gallery ADD COLUMN image_url TEXT;
+    END IF;
+    -- Make imageUrl optional if it already exists
+    ALTER TABLE gallery ALTER COLUMN "imageUrl" DROP NOT NULL;
+  END IF;
+END $$;
 `;
 
 // Helper to mask sensitive keys
@@ -1277,10 +1302,10 @@ app.post("/api/leads", async (req, res) => {
     leads.unshift(newLead);
     writeLeads(leads);
 
-    const supabase = getSupabaseClient();
-    if (supabase) {
+    const adminClient = getSupabaseAdminClient() || getSupabaseClient();
+    if (adminClient) {
       try {
-        const { error } = await supabase.from("leads").insert([newLead]);
+        const { error } = await adminClient.from("leads").insert([newLead]);
         if (error) {
           console.warn("Could not insert lead to Supabase 'leads' table:", error.message);
         } else {
@@ -1979,6 +2004,93 @@ app.delete("/api/leads/:id", requireSession, async (req, res) => {
     return res.json({ success: true, message: "Lead inquiry deleted successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error deleting lead inquiry" });
+  }
+});
+
+// --- PROTECTED GLOBAL CMS SYNC ENDPOINT ---
+app.post("/api/cms/sync/:table", requireSession, async (req, res) => {
+  const { table } = req.params;
+  const items = req.body;
+  
+  const adminClient = getSupabaseAdminClient();
+  if (!adminClient) {
+    return res.status(500).json({ success: false, message: "Supabase admin client not initialized on server." });
+  }
+
+  try {
+    if (table === "settings") {
+      const settingsObj = Array.isArray(items) ? items[0] : items;
+      const { error } = await adminClient.from("settings").upsert({ id: "website_settings", ...settingsObj });
+      if (error) {
+        console.error("Settings sync error:", error.message);
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      return res.json({ success: true });
+    }
+
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ success: false, message: "Expected an array of items for syncing." });
+    }
+
+    // Determine IDs to keep
+    const ids = items.map((item: any) => item.id).filter(Boolean);
+    
+    // Delete removed items
+    if (ids.length > 0) {
+      const formattedIds = ids.map(id => `'${id}'`).join(",");
+      const { error: deleteError } = await adminClient
+        .from(table)
+        .delete()
+        .filter("id", "not.in", `(${formattedIds})`);
+      if (deleteError) {
+        console.warn(`Sync delete warn for ${table}:`, deleteError.message);
+      }
+    } else {
+      const { error: deleteError } = await adminClient
+        .from(table)
+        .delete()
+        .neq("id", "");
+      if (deleteError) {
+        console.warn(`Sync delete all warn for ${table}:`, deleteError.message);
+      }
+    }
+
+    // Upsert the new/updated items
+    if (items.length > 0) {
+      const mappedItems = items.map((item: any) => {
+        if (table === "gallery") {
+          return {
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            imageUrl: item.imageUrl || item.image_url || "",
+            image_url: item.imageUrl || item.image_url || "",
+            videoUrl: item.videoUrl || item.video_url || "",
+            video_url: item.videoUrl || item.video_url || "",
+            location: item.location || "",
+            description: item.description || "",
+            specs: item.specs || {},
+            client: item.client || "",
+            timeline: item.timeline || "",
+            is_featured: !!item.is_featured,
+            created_at: item.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+        }
+        return item;
+      });
+
+      const { error: upsertError } = await adminClient.from(table).upsert(mappedItems);
+      if (upsertError) {
+        console.error(`Upsert error for ${table}:`, upsertError.message);
+        return res.status(400).json({ success: false, message: upsertError.message });
+      }
+    }
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error(`Exception syncing ${table} on server:`, err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

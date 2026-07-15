@@ -138,6 +138,10 @@ export interface GalleryItem {
   videoUrl?: string;
   location: string;
   description: string;
+  client?: string;
+  timeline?: string;
+  is_featured?: boolean;
+  created_at?: string;
   specs: {
     dimensions: string;
     controller: string;
@@ -166,6 +170,22 @@ export interface WebsiteSettings {
   hours: string;
   logoUrl?: string;
   footerText?: string;
+  // Hero Badge Options
+  showHeroBadge?: boolean;
+  heroBadgeColor?: string;
+  heroBadgeBorder?: string;
+  heroBadgeIcon?: string;
+  // Navigation Menu Customization
+  navHome?: string;
+  navAbout?: string;
+  navProducts?: string;
+  navApplications?: string;
+  navProjects?: string;
+  navGallery?: string;
+  navResources?: string;
+  navBlog?: string;
+  navContact?: string;
+  navQuote?: string;
   // Home Page CMS
   homeHeroBanner?: string;
   homeHeroHeadline?: string;

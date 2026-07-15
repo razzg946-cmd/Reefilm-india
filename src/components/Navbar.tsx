@@ -16,15 +16,15 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch, settings }
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
 
   const navItems = [
-    { id: "home", label: "Home" },
-    { id: "about", label: "About Us" },
-    { id: "products", label: "Products" },
-    { id: "applications", label: "Applications" },
-    { id: "projects", label: "Projects" },
-    { id: "gallery", label: "Gallery" },
-    { id: "resources", label: "Resources" },
-    { id: "blog", label: "Blog" },
-    { id: "contact", label: "Contact" },
+    { id: "home", label: settings?.navHome || "Home" },
+    { id: "about", label: settings?.navAbout || "About Us" },
+    { id: "products", label: settings?.navProducts || "Products" },
+    { id: "applications", label: settings?.navApplications || "Applications" },
+    { id: "projects", label: settings?.navProjects || "Projects" },
+    { id: "gallery", label: settings?.navGallery || "Gallery" },
+    { id: "resources", label: settings?.navResources || "Resources" },
+    { id: "blog", label: settings?.navBlog || "Blog" },
+    { id: "contact", label: settings?.navContact || "Contact" },
   ];
 
   const handleSearchSubmit = (e: FormEvent) => {
@@ -195,7 +195,7 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch, settings }
               onClick={() => handleNavClick("quote")}
               className="bg-[#E30613] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-full transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_20px_rgba(227,6,19,0.2)] hover:shadow-[0_4px_25px_rgba(227,6,19,0.4)]"
             >
-              Request Quote
+              {settings?.navQuote || "Request Quote"}
             </button>
           </div>
 
@@ -270,7 +270,7 @@ export default function Navbar({ currentTab, setCurrentTab, onSearch, settings }
               onClick={() => handleNavClick("quote")}
               className="w-full bg-red-600 hover:bg-red-700 text-white text-center font-bold py-3 rounded-lg shadow-lg"
             >
-              Request Quote
+              {settings?.navQuote || "Request Quote"}
             </button>
           </div>
         </div>

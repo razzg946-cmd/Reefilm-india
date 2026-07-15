@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent, useRef } from "react";
 import { 
   INITIAL_PRODUCTS, INITIAL_PROJECTS, INITIAL_BLOG_POSTS, INITIAL_RESOURCES, TESTIMONIALS, INITIAL_LEADS,
   INITIAL_GALLERY_ITEMS, INITIAL_TEAM_MEMBERS, INITIAL_SETTINGS, INITIAL_ADMIN_USERS, APPLICATIONS
@@ -59,6 +59,7 @@ try {
 }
 
 export default function App() {
+  const isStartupSyncComplete = useRef(false);
   const [currentTab, setCurrentTab] = useState<string>("home");
   const [selectedProductForQuote, setSelectedProductForQuote] = useState<string>("");
   const [productSearchTerm, setProductSearchTerm] = useState<string>("");
@@ -363,17 +364,7 @@ export default function App() {
     return TESTIMONIALS;
   });
 
-  const [gallery, setGallery] = useState<GalleryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("reefilm_gallery");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Error reading gallery from localStorage:", e);
-    }
-    return INITIAL_GALLERY_ITEMS;
-  });
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
 
   const [team, setTeam] = useState<TeamMember[]>(() => {
     try {
@@ -425,6 +416,7 @@ export default function App() {
 
   // Persist State modifications to LocalStorage and sync with Supabase Database
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_leads", JSON.stringify(leads));
       syncLeads(leads);
@@ -434,6 +426,7 @@ export default function App() {
   }, [leads]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_products", JSON.stringify(products));
       syncProducts(products);
@@ -443,6 +436,7 @@ export default function App() {
   }, [products]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_projects", JSON.stringify(projects));
       syncProjects(projects);
@@ -452,6 +446,7 @@ export default function App() {
   }, [projects]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_blogs", JSON.stringify(blogs));
       syncBlogs(blogs);
@@ -461,6 +456,7 @@ export default function App() {
   }, [blogs]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_downloads", JSON.stringify(downloads));
       syncDownloads(downloads);
@@ -470,6 +466,7 @@ export default function App() {
   }, [downloads]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_testimonials", JSON.stringify(testimonials));
       syncTestimonials(testimonials);
@@ -479,15 +476,16 @@ export default function App() {
   }, [testimonials]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
-      localStorage.setItem("reefilm_gallery", JSON.stringify(gallery));
       syncGallery(gallery);
     } catch (e) {
-      console.error("Error writing gallery to localStorage:", e);
+      console.error("Error syncing gallery to Supabase:", e);
     }
   }, [gallery]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_team", JSON.stringify(team));
       syncTeam(team);
@@ -497,6 +495,7 @@ export default function App() {
   }, [team]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_settings", JSON.stringify(settings));
       syncSettings(settings);
@@ -506,6 +505,7 @@ export default function App() {
   }, [settings]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_admin_users", JSON.stringify(adminUsers));
       syncAdminUsers(adminUsers);
@@ -515,6 +515,7 @@ export default function App() {
   }, [adminUsers]);
 
   useEffect(() => {
+    if (!isStartupSyncComplete.current) return;
     try {
       localStorage.setItem("reefilm_applications", JSON.stringify(applications));
       syncApplications(applications);
@@ -561,7 +562,7 @@ export default function App() {
         if (dbBlogs && dbBlogs.length > 0) setBlogs(dbBlogs);
         if (dbDownloads && dbDownloads.length > 0) setDownloads(dbDownloads);
         if (dbTestimonials && dbTestimonials.length > 0) setTestimonials(dbTestimonials);
-        if (dbGallery && dbGallery.length > 0) setGallery(dbGallery);
+        if (dbGallery) setGallery(dbGallery);
         if (dbTeam && dbTeam.length > 0) setTeam(dbTeam);
         if (dbSettings) setSettings(dbSettings);
         if (dbAdminUsers && dbAdminUsers.length > 0) setAdminUsers(dbAdminUsers);
@@ -569,6 +570,8 @@ export default function App() {
         if (dbApplications && dbApplications.length > 0) setApplications(dbApplications);
       } catch (err) {
         console.error("Failed to fetch startup databases from Supabase:", err);
+      } finally {
+        isStartupSyncComplete.current = true;
       }
     };
 
@@ -714,12 +717,12 @@ export default function App() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                   <div className="lg:col-span-7 space-y-6">
-                    <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">PROFESSIONAL PARTNERSHIP STATEMENT</span>
+                    <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">INDEPENDENT INDIAN ENTERPRISE</span>
                     <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
                       India's Premium Certified Solutions Provider
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-                      Reefilm India stands independent as the official Indian partner of REEFILM China, delivering advanced LED display solutions, installation, sales, and after-sales support throughout India.
+                      Reefilm India stands independent as India's premier transparent LED display enterprise, delivering advanced display solutions, expert on-site glass lamination, sales, and comprehensive technical support throughout India.
                     </p>
                     <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
                       We strictly avoid copied templates or simulated claims. Our catalog boasts premium CE, RoHS, and FCC certified components built specifically to combat high-street UV exposure and extreme Indian summer temperatures.
@@ -770,23 +773,23 @@ export default function App() {
               </div>
             </section>
 
-            {/* About Reefilm China - Short Home Version */}
+            {/* About Reefilm India - Short Home Version */}
             <section className="py-16 bg-black border-b border-white/5">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                   <div className="lg:col-span-5 space-y-4">
-                    <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">ABOUT REEFILM CHINA</span>
+                    <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">ABOUT REEFILM INDIA</span>
                     <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase leading-tight">
-                      Global Precision <br />Manufacturing
+                      Indian Precision <br />& Engineering
                     </h2>
                     <div className="h-1 w-12 bg-red-600 rounded" />
                   </div>
                   <div className="lg:col-span-7 space-y-4 text-xs sm:text-sm text-gray-400 leading-relaxed">
                     <p>
-                      <strong>Reefilm China</strong> is a leading manufacturer of Transparent LED Film Display Solutions headquartered in Dongguan, Guangdong, China. Equipped with advanced cleanroom laboratories and state-of-the-art SMT lines, they pioneer the development of self-adhesive transparent visual displays.
+                      <strong>Reefilm India</strong> is India's leading provider of Transparent LED Film Display Solutions, spearheaded by Raj Gupta and headquartered in Chennai, Tamil Nadu. Equipped with dedicated engineering facilities, we lead the development, custom sizing, and flawless installation of self-adhesive transparent visual displays.
                     </p>
                     <p>
-                      <strong>Reefilm India</strong> is the Authorized Sales, Installation & Technical Support Partner for India, delivering premium transparent display technology for commercial buildings, retail stores, shopping malls, airports, hotels, restaurants, and corporate spaces.
+                      We deliver end-to-end transparent display technology and professional site calibration for commercial buildings, high-street retail storefronts, shopping malls, corporate spaces, and smart glass facades across India.
                     </p>
                   </div>
                 </div>
@@ -919,31 +922,31 @@ export default function App() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   
-                  {/* Manufacturer Column */}
+                  {/* Design & Integration Column */}
                   <div className="bg-black/40 border border-white/5 p-6 rounded-2xl flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-2">Global Manufacturer</span>
-                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">Reefilm China</h3>
+                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-2">Engineering & Design</span>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">Design & Blueprinting</h3>
                       <p className="text-xs text-gray-400 leading-relaxed mb-4">
-                        Pioneering transparent LED display development with state-of-the-art cleanroom laboratories, advanced automated SMT rows, and rigorous 72-hour stress-testing standards in Dongguan, China.
+                        Pioneering custom transparent LED layouts with dedicated project modeling, advanced CAD blueprinting, and structural integration mapping coordinated directly from Chennai.
                       </p>
                     </div>
                     <div className="text-[10px] font-mono text-red-500 font-bold border-t border-white/5 pt-3">
-                      ✓ Factory-Direct Quality Control
+                      ✓ Local Custom Calibration
                     </div>
                   </div>
 
-                  {/* Authorized Partner Column */}
+                  {/* Independent Corporate HQ Column */}
                   <div className="bg-black/40 border border-white/5 p-6 rounded-2xl flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-2">Authorized Partner</span>
+                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block mb-2">Corporate Office</span>
                       <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">Reefilm India</h3>
                       <p className="text-xs text-gray-400 leading-relaxed mb-4">
-                        The exclusive corporate logistics, sales, and localized technical support execution entity based in Chennai, delivering genuine factory warranties and seamless project management nationwide.
+                        Independent enterprise based in Chennai, Tamil Nadu, managing operations, certified glass lamination services, sales, logistics, and localized technical warranties across India.
                       </p>
                     </div>
                     <div className="text-[10px] font-mono text-red-500 font-bold border-t border-white/5 pt-3">
-                      ✓ Exclusive Certified Distribution
+                      ✓ Pan-India Service Guarantee
                     </div>
                   </div>
 

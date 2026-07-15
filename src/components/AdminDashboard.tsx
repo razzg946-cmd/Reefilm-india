@@ -10,6 +10,7 @@ import {
   ExternalLink, Image as ImageIcon, PlayCircle, BookOpen, Settings, UserCheck, ShieldAlert, Edit, 
   Upload, Copy, Check, FileUp, Globe, Clock, HelpCircle, Share2, Sliders, Building2, Cpu
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Product, Project, ApplicationItem, BlogPost, ResourceDoc, Testimonial, LeadInquiry, GalleryItem, TeamMember, WebsiteSettings, AdminUser } from "../types";
 
 interface AdminDashboardProps {
@@ -164,9 +165,19 @@ export default function AdminDashboard({
     code: string;
   } | null>(null);
 
+  // Website Content Manager Local Draft State
+  const [draftSettings, setDraftSettings] = useState<WebsiteSettings>(() => settings);
+  const [previewActive, setPreviewActive] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (settings) {
+      setDraftSettings(settings);
+    }
+  }, [settings]);
+
   // 6. Enterprise CMS Modules Sub-tab
   const [activeSubTab, setActiveSubTab] = useState<
-    "setup" | "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore" | "projects" | "applications"
+    "setup" | "dashboard" | "products" | "gallery" | "downloads" | "quotes" | "leads" | "team" | "blog" | "settings" | "users" | "profile" | "media_library" | "seo_manager" | "activity_log" | "backup_restore" | "projects" | "applications" | "content_manager"
   >("setup");
 
   // 7. Session Activity Extension Handler
@@ -468,6 +479,9 @@ export default function AdminDashboard({
   const [gTransmission, setGTransmission] = useState("");
   const [gController, setGController] = useState("");
   const [gDimensions, setGDimensions] = useState("");
+  const [gClient, setGClient] = useState("");
+  const [gTimeline, setGTimeline] = useState("");
+  const [gIsFeatured, setGIsFeatured] = useState(false);
 
   // 3. Download Form fields
   const [dTitle, setDTitle] = useState("");
@@ -626,13 +640,13 @@ export default function AdminDashboard({
     return {
       home: {
         title: "Reefilm India | Premium Transparent LED Display Solutions",
-        description: "Official Indian partner of REEFILM China. Transform high-street glass facades, retail storefronts, and office partitions with self-adhesive, daylight-visible transparent LED film.",
+        description: "Independent Leader in Transparent LED Film Displays. Transform high-street glass facades, retail storefronts, and office partitions with self-adhesive, daylight-visible transparent LED film.",
         keywords: "transparent led display, led film india, glass facade advertising, adhesive led screen, chennai"
       },
       about: {
-        title: "About Us | Reefilm India Leadership & Manufacturing",
-        description: "Discover our global engineering partnership. Built in state-of-the-art cleanrooms in China, configured and backed with a 1-year swap-out guarantee by Raj Gupta's Chennai-based team.",
-        keywords: "reefilm team, manufacturing factory, cleanroom, dongguan, raj gupta"
+        title: "About Us | Reefilm India Leadership & Engineering",
+        description: "Discover Reefilm India's leadership and technical integration. Our premium self-adhesive displays are configured and backed with a 1-year swap-out guarantee by our Chennai-based team.",
+        keywords: "reefilm team, engineering center, raj gupta, chennai"
       },
       products: {
         title: "Products Catalog | High-Transparency Smart LED Films",
@@ -1374,6 +1388,9 @@ export default function AdminDashboard({
       setGTransmission(item.specs.transmission);
       setGController(item.specs.controller);
       setGDimensions(item.specs.dimensions);
+      setGClient(item.client || "");
+      setGTimeline(item.timeline || "");
+      setGIsFeatured(!!item.is_featured);
     } else {
       setActiveEditingId(null);
       setGTitle("");
@@ -1386,6 +1403,9 @@ export default function AdminDashboard({
       setGTransmission("90% Ultra Clear");
       setGController("Reefilm-Pro Sync Hub");
       setGDimensions("8.0m x 3.5m");
+      setGClient("");
+      setGTimeline("");
+      setGIsFeatured(false);
     }
   };
 
@@ -1401,6 +1421,10 @@ export default function AdminDashboard({
       videoUrl: gVideo || "",
       location: gLocation || "Chennai",
       description: gDescription || "Active transparent display setup featuring state of the art lamination calibration specs.",
+      client: gClient || "Reefilm India Client",
+      timeline: gTimeline || "Completed",
+      is_featured: gIsFeatured,
+      created_at: new Date().toISOString(),
       specs: {
         layers: gLayers,
         transmission: gTransmission,
@@ -2088,6 +2112,7 @@ export default function AdminDashboard({
                 
                 {[
                   { id: "dashboard", label: "Dashboard Hub", icon: BarChart, count: null },
+                  { id: "content_manager", label: "Website Content Manager", icon: Edit, count: null },
                   { id: "setup", label: "System Setup", icon: Sliders, count: null },
                   { id: "products", label: "Products Catalog", icon: Layers, count: products.length },
                   { id: "projects", label: "Interactive Portfolio", icon: Building2, count: projects.length },
@@ -2981,7 +3006,7 @@ export default function AdminDashboard({
                           <input type="text" required placeholder="e.g. Chennai International Hub" value={gLocation} onChange={(e) => setGLocation(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
                         </div>
                         <div className="space-y-1 md:col-span-2">
-                          <ImageUploader label="Project Image" value={gImage} onChange={setGImage} />
+                          <ImageUploader label="Project Image" value={gImage} onChange={setGImage} bucket="gallery" />
                         </div>
                         <div className="space-y-1 md:col-span-2">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold flex items-center justify-between">
@@ -3016,6 +3041,20 @@ export default function AdminDashboard({
                         <div className="space-y-1">
                           <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Dimensions / Area Size</label>
                           <input type="text" placeholder="e.g. 8.0m x 3.5m" value={gDimensions} onChange={(e) => setGDimensions(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Client</label>
+                          <input type="text" placeholder="e.g. BMW India / DLF Mall" value={gClient} onChange={(e) => setGClient(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Timeline / Year</label>
+                          <input type="text" placeholder="e.g. Q4 2025" value={gTimeline} onChange={(e) => setGTimeline(e.target.value)} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:ring-1 focus:ring-red-600 outline-none" />
+                        </div>
+                        <div className="space-y-1 flex items-center md:col-span-2 pt-2">
+                          <label className="flex items-center space-x-2 text-[10px] font-mono text-gray-400 uppercase font-bold cursor-pointer">
+                            <input type="checkbox" checked={gIsFeatured} onChange={(e) => setGIsFeatured(e.target.checked)} className="rounded bg-neutral-950 border-white/10 text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                            <span>Feature on Homepage Gallery</span>
+                          </label>
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end pt-2">
@@ -3667,6 +3706,317 @@ export default function AdminDashboard({
                 </div>
               )}
 
+              {/* WEBSITE CONTENT MANAGER MODULE */}
+              {activeSubTab === "content_manager" && (
+                <div className="bg-neutral-950 border border-white/10 rounded-2xl p-6 space-y-6 animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-white/5 pb-4">
+                    <div>
+                      <h2 className="text-lg font-black uppercase text-white tracking-tight flex items-center gap-2">
+                        <Edit className="w-5 h-5 text-red-500" />
+                        <span>Website Content Manager</span>
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Control visual states, toggle badges, customize branding parameters, and preview home elements dynamically.
+                      </p>
+                    </div>
+                    <div className="mt-3 md:mt-0 flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewActive(!previewActive)}
+                        className={`text-[10px] uppercase font-mono px-3 py-1.5 rounded border transition-colors ${
+                          previewActive 
+                            ? "bg-red-600/10 border-red-500/30 text-red-400" 
+                            : "bg-neutral-900 border-white/5 text-gray-400"
+                        }`}
+                      >
+                        {previewActive ? "Hide Preview" : "Show Preview"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LIVE PREVIEW BLOCK */}
+                  {previewActive && (
+                    <div className="border border-white/10 bg-black/60 rounded-2xl p-6 relative overflow-hidden space-y-4">
+                      <div className="absolute top-2 right-2 bg-neutral-900 border border-white/15 text-[8px] font-mono uppercase px-2 py-0.5 rounded text-gray-400 tracking-widest font-bold">
+                        Live Preview (Before Publishing)
+                      </div>
+                      
+                      {/* Brand Header preview mock */}
+                      <div className="border-b border-white/5 pb-3 flex items-center justify-between opacity-80 scale-95 origin-left">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center font-black text-white text-[10px]">R</div>
+                          <div>
+                            <p className="text-white font-extrabold text-xs tracking-tight uppercase">
+                              {draftSettings.companyName || "Reefilm India"}
+                            </p>
+                            <p className="text-[7px] text-neutral-400 font-mono tracking-widest leading-none">
+                              {draftSettings.tagline || "Transparent LED Film Solutions"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Badge / Status Pill Mock */}
+                      {draftSettings.showHeroBadge !== false ? (
+                        <div 
+                          style={{ borderColor: draftSettings.heroBadgeBorder || "rgba(227, 6, 19, 0.5)" }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E30613]/10 border rounded text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          {(() => {
+                            const iconName = draftSettings.heroBadgeIcon || "ShieldCheck";
+                            // @ts-ignore
+                            const ResolvedIcon = LucideIcons[iconName] || LucideIcons.ShieldCheck;
+                            return ResolvedIcon ? <ResolvedIcon className="w-3.5 h-3.5 shrink-0" style={{ color: draftSettings.heroBadgeColor || "#FF5F6D" }} /> : null;
+                          })()}
+                          <span style={{ color: draftSettings.heroBadgeColor || "#FF5F6D" }}>
+                            {draftSettings.homeHeroBanner || "Independent Leader in Transparent LED Film Displays"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] font-mono text-gray-600 italic">
+                          (Hero Badge Hidden)
+                        </div>
+                      )}
+
+                      {/* Hero headline mock */}
+                      <div className="space-y-2">
+                        <h1 className="text-xl sm:text-2xl font-black text-white leading-tight font-display tracking-tight">
+                          {draftSettings.homeHeroHeadline || "Transform Glass Into Brilliant Active LED Displays."}
+                        </h1>
+                        <p className="text-gray-400 text-[11px] leading-relaxed max-w-xl font-light font-sans line-clamp-2">
+                          {draftSettings.homeHeroSubtitle || "Premium transparent LED film and customized digital displays..."}
+                        </p>
+                      </div>
+
+                      {/* Mock Buttons */}
+                      <div className="flex items-center gap-3 pt-2">
+                        <div className="bg-[#E30613] text-white font-bold text-[10px] uppercase tracking-wider px-4 py-2 rounded-full">
+                          {draftSettings.homeHeroCta1Text || "Explore Products"}
+                        </div>
+                        <div className="bg-white/5 border border-white/10 text-gray-400 text-[10px] uppercase tracking-wider px-4 py-2 rounded-full">
+                          {draftSettings.homeHeroCta2Text || "Our Projects"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                    {/* Brand Parameters */}
+                    <div className="border border-white/5 bg-black/40 p-5 rounded-2xl space-y-4">
+                      <h3 className="text-xs font-black uppercase text-red-500 tracking-wider flex items-center gap-2">
+                        <Award className="w-4 h-4" /> <span>Branding config</span>
+                      </h3>
+                      
+                      <div className="space-y-3.5">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Company Name</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.companyName || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, companyName: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500" 
+                          />
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Company Tagline</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.tagline || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, tagline: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500" 
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <ImageUploader 
+                            label="Website Logo" 
+                            value={draftSettings.logoUrl || ""} 
+                            onChange={(url) => setDraftSettings({ ...draftSettings, logoUrl: url })} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hero Badge Settings */}
+                    <div className="border border-white/5 bg-black/40 p-5 rounded-2xl space-y-4">
+                      <h3 className="text-xs font-black uppercase text-red-500 tracking-wider flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" /> <span>Hero Badge Configuration</span>
+                      </h3>
+                      
+                      <div className="space-y-3.5">
+                        <div className="flex items-center justify-between bg-neutral-950 border border-white/5 p-3 rounded-xl">
+                          <div>
+                            <p className="text-[11px] font-bold text-white uppercase tracking-wider">Show Hero Badge</p>
+                            <p className="text-[9px] text-gray-500 mt-0.5">Toggle display of status pill on home hero</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={draftSettings.showHeroBadge !== false} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, showHeroBadge: e.target.checked })} 
+                            className="w-4 h-4 text-red-600 focus:ring-red-500 border-neutral-800 rounded bg-black" 
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Badge Text</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.homeHeroBanner || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, homeHeroBanner: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500" 
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Badge Icon</label>
+                            <select 
+                              value={draftSettings.heroBadgeIcon || "ShieldCheck"} 
+                              onChange={(e) => setDraftSettings({ ...draftSettings, heroBadgeIcon: e.target.value })}
+                              className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-2.5 text-white focus:outline-none focus:border-red-500"
+                            >
+                              <option value="ShieldCheck">Shield Check</option>
+                              <option value="Zap">Zap (Lightning)</option>
+                              <option value="Award">Award</option>
+                              <option value="Sliders">Sliders</option>
+                              <option value="Star">Star</option>
+                              <option value="HelpCircle">Help Info</option>
+                              <option value="Sparkles">Sparkles</option>
+                              <option value="Building2">Corporate HQ</option>
+                              <option value="Cpu">Microchip (CPU)</option>
+                              <option value="Eye">Eye</option>
+                              <option value="Sun">Sun Brightness</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Badge Text Color</label>
+                            <input 
+                              type="text" 
+                              value={draftSettings.heroBadgeColor || ""} 
+                              onChange={(e) => setDraftSettings({ ...draftSettings, heroBadgeColor: e.target.value })} 
+                              className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500 font-mono" 
+                              placeholder="#FF5F6D"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Badge Border Color / CSS</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.heroBadgeBorder || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, heroBadgeBorder: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500 font-mono" 
+                            placeholder="rgba(227, 6, 19, 0.5)"
+                          />
+                        </div>
+
+                        {/* Presets color helper block */}
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-mono text-gray-500 uppercase font-bold">Quick Badge Presets</p>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button 
+                              type="button"
+                              onClick={() => setDraftSettings({ ...draftSettings, heroBadgeColor: "#FF5F6D", heroBadgeBorder: "rgba(227, 6, 19, 0.5)" })}
+                              className="px-2 py-1 bg-red-950/20 border border-red-500/20 rounded text-[9px] text-red-400 hover:bg-red-950/40"
+                            >
+                              Red Crimson
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setDraftSettings({ ...draftSettings, heroBadgeColor: "#10B981", heroBadgeBorder: "rgba(16, 185, 129, 0.4)" })}
+                              className="px-2 py-1 bg-emerald-950/20 border border-emerald-500/20 rounded text-[9px] text-emerald-400 hover:bg-emerald-950/40"
+                            >
+                              Emerald Green
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setDraftSettings({ ...draftSettings, heroBadgeColor: "#F59E0B", heroBadgeBorder: "rgba(245, 158, 11, 0.4)" })}
+                              className="px-2 py-1 bg-amber-950/20 border border-amber-500/20 rounded text-[9px] text-amber-400 hover:bg-amber-950/40"
+                            >
+                              Amber Gold
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setDraftSettings({ ...draftSettings, heroBadgeColor: "#3B82F6", heroBadgeBorder: "rgba(59, 130, 246, 0.4)" })}
+                              className="px-2 py-1 bg-blue-950/20 border border-blue-500/20 rounded text-[9px] text-blue-400 hover:bg-blue-950/40"
+                            >
+                              Tech Blue
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Homepage Texts */}
+                    <div className="border border-white/5 bg-black/40 p-5 rounded-2xl space-y-4 md:col-span-2">
+                      <h3 className="text-xs font-black uppercase text-red-500 tracking-wider flex items-center gap-2">
+                        <Sliders className="w-4 h-4" /> <span>Homepage Texts & CTA Buttons</span>
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Hero Headline (Giant Title)</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.homeHeroHeadline || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, homeHeroHeadline: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none focus:border-red-500" 
+                          />
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Hero Description / Copy</label>
+                          <textarea 
+                            rows={3} 
+                            value={draftSettings.homeHeroSubtitle || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, homeHeroSubtitle: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:outline-none focus:border-red-500 leading-relaxed" 
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">CTA Button 1 Text</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.homeHeroCta1Text || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, homeHeroCta1Text: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none" 
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">CTA Button 2 Text</label>
+                          <input 
+                            type="text" 
+                            value={draftSettings.homeHeroCta2Text || ""} 
+                            onChange={(e) => setDraftSettings({ ...draftSettings, homeHeroCta2Text: e.target.value })} 
+                            className="w-full bg-neutral-950 border border-white/10 rounded py-2 px-3 text-white focus:outline-none" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onUpdateSettings(draftSettings);
+                        setSuccessMsg("Branding and content changes published live successfully!");
+                        setTimeout(() => setSuccessMsg(""), 4000);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest px-8 py-3.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-red-600/15 flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Save Changes & Publish Live</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* 9. WEBSITE SETTINGS MODULE (MANAGE CONTENT WITHOUT EDITING CODE) */}
               {activeSubTab === "settings" && (
                 <div className="bg-neutral-950 border border-white/10 rounded-2xl p-6 space-y-6 animate-fade-in">
@@ -3791,15 +4141,15 @@ export default function AdminDashboard({
                       </div>
                     </div>
 
-                    {/* About Page CMS - Section 1: China Headquarters */}
+                    {/* About Page CMS - Section 1: India HQ / Corporate Profile */}
                     <div className="border border-white/5 bg-black/40 p-5 rounded-2xl space-y-4">
                       <h3 className="text-xs font-black uppercase text-red-500 tracking-wider flex items-center gap-2">
-                        <Database className="w-4 h-4" /> <span>About Page - Section 1: Reefilm China HQ</span>
+                        <Database className="w-4 h-4" /> <span>About Page - Section 1: Reefilm India HQ / Profile</span>
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Section 1 Subtitle (e.g., 01 / About Reefilm China)</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Section 1 Subtitle (e.g., 01 / Independent Indian Pioneer)</label>
                           <input type="text" value={settings.aboutChinaSub || ""} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaSub: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
@@ -3807,15 +4157,15 @@ export default function AdminDashboard({
                           <input type="text" value={settings.aboutChinaTitle || ""} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaTitle: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Founder Name (Reefilm China)</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Founder / Director Name</label>
                           <input type="text" value={settings.aboutChinaFounder} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaFounder: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Official Website URL (Reefilm China)</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Official Website URL (India)</label>
                           <input type="text" value={settings.aboutChinaWebsite} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaWebsite: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Manufacturing Headquarters location</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Corporate Headquarters Location</label>
                           <input type="text" value={settings.aboutChinaHeadquarters} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaHeadquarters: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
@@ -3823,11 +4173,11 @@ export default function AdminDashboard({
                           <input type="text" value={settings.aboutChinaBusiness} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaBusiness: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded py-2 pl-3 text-white focus:outline-none" />
                         </div>
                         <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Official Company Description (About Reefilm China)</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Official Company Description (About Reefilm India)</label>
                           <textarea rows={4} value={settings.aboutChinaText} onChange={(e) => onUpdateSettings({ ...settings, aboutChinaText: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:outline-none leading-relaxed" />
                         </div>
                         <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Manufacturing Factory Address (Dongguan)</label>
+                          <label className="text-[10px] font-mono text-gray-400 uppercase font-bold">Corporate Headquarters Address (Chennai)</label>
                           <textarea rows={3} value={settings.factoryAddress} onChange={(e) => onUpdateSettings({ ...settings, factoryAddress: e.target.value })} className="w-full bg-neutral-950 border border-white/10 rounded p-3 text-white focus:outline-none leading-relaxed" />
                         </div>
                       </div>

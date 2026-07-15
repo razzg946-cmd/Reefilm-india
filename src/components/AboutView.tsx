@@ -27,26 +27,26 @@ export default function AboutView({ setCurrentTab, teamMembers, settings }: Abou
             {settings.aboutHeaderTitle || "Corporate Profile & Team"}
           </h1>
           <p className="text-gray-400 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
-            {settings.aboutHeaderIntro || "The synergistic partnership linking Reefilm China's leading-edge manufacturing precision with Reefilm India's authorized sales, certified lamination, and nationwide technical support."}
+            {settings.aboutHeaderIntro || "Reefilm India is an independent Indian enterprise leading the country's architectural digital transformation with premium transparent LED lamination, advanced project engineering, and nationwide technical support."}
           </p>
         </div>
       </section>
 
-      {/* SECTION 1: ABOUT REEFILM CHINA */}
+      {/* SECTION 1: ABOUT REEFILM INDIA */}
       <section className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             {/* Left side: Company Description */}
             <div className="lg:col-span-7 space-y-6">
               <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">
-                {settings.aboutChinaSub || "01 / About Reefilm China"}
+                {settings.aboutChinaSub || "01 / Independent Indian Pioneer"}
               </span>
               <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight leading-tight">
-                {settings.aboutChinaTitle || "Global Manufacturer of Transparent LED Film"}
+                {settings.aboutChinaTitle || "Architectural Transparent LED Display Solutions"}
               </h2>
               <div className="space-y-4 text-xs sm:text-sm text-gray-400 leading-relaxed whitespace-pre-line">
                 <p>
-                  {settings.aboutChinaText}
+                  {settings.aboutChinaText || "Reefilm India specializes in state-of-the-art Transparent LED Film Display technology for commercial, retail, architectural, hospitality, and smart glass applications across India. We deliver seamless lamination onto glass, providing high-brightness daylight advertising while retaining interior natural daylight."}
                 </p>
               </div>
             </div>
@@ -60,21 +60,21 @@ export default function AboutView({ setCurrentTab, teamMembers, settings }: Abou
                 <div className="space-y-4 text-xs font-mono">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 border-b border-white/5 pb-3">
                     <span className="text-gray-500 uppercase">FOUNDER:</span>
-                    <span className="text-white font-sans font-semibold">{settings.aboutChinaFounder}</span>
+                    <span className="text-white font-sans font-semibold">{settings.aboutChinaFounder || "Raj Gupta"}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 border-b border-white/5 pb-3">
                     <span className="text-gray-500 uppercase">OFFICIAL WEBSITE:</span>
-                    <a href={`https://${settings.aboutChinaWebsite}`} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 font-sans font-semibold transition-colors">
-                      {settings.aboutChinaWebsite}
+                    <a href={`https://${settings.aboutChinaWebsite || "www.reefilm.in"}`} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-300 font-sans font-semibold transition-colors">
+                      {settings.aboutChinaWebsite || "www.reefilm.in"}
                     </a>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 border-b border-white/5 pb-3">
                     <span className="text-gray-500 uppercase">HEADQUARTERS:</span>
-                    <span className="text-white font-sans font-semibold">{settings.aboutChinaHeadquarters}</span>
+                    <span className="text-white font-sans font-semibold">{settings.aboutChinaHeadquarters || "Chennai, Tamil Nadu, India"}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 pb-1">
                     <span className="text-gray-500 uppercase">BUSINESS:</span>
-                    <span className="text-white font-sans font-semibold">{settings.aboutChinaBusiness}</span>
+                    <span className="text-white font-sans font-semibold">{settings.aboutChinaBusiness || "Transparent LED Film Solutions"}</span>
                   </div>
                 </div>
               </div>
@@ -136,24 +136,24 @@ export default function AboutView({ setCurrentTab, teamMembers, settings }: Abou
         </div>
       </section>
 
-      {/* SECTION 3: MANUFACTURING FACILITY */}
+      {/* SECTION 3: ENGINEERING CENTER */}
       <section className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left side: Manufacturing info */}
             <div className="lg:col-span-7 space-y-6">
               <span className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold">
-                {settings.aboutFactorySub || "03 / Manufacturing Facility"}
+                {settings.aboutFactorySub || "03 / Local Engineering Center"}
               </span>
               <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight leading-tight">
-                {settings.aboutFactoryTitle || "Advanced Production & SMT Cleanroom Systems"}
+                {settings.aboutFactoryTitle || "Advanced Production & Cleanroom Lamination Systems"}
               </h2>
               <div className="space-y-4 text-xs sm:text-sm text-gray-400 leading-relaxed whitespace-pre-line">
                 <p>
-                  {settings.aboutFactoryDesc1 || "Our high-tech manufacturing base is engineered to deliver pristine, highly transparent displays with micron-level precision. Operating in specialized dust-free environments, our SMT and lamination rows produce robust polymer substrates capable of continuous architectural operation."}
+                  {settings.aboutFactoryDesc1 || "Our local technical integration division is engineered to coordinate pristine, high-transparency glass displays with micrometric accuracy. Operating under certified installation protocols, our lamination engineers produce durable polymer substrates optimized for continuous architectural lamination."}
                 </p>
                 <p>
-                  {settings.aboutFactoryDesc2 || "Every batch of Transparent LED Film is subjected to a comprehensive battery of stress tests, including 72-hour cycle aging, extreme heat calibration, and UV resilience tests, ensuring long-term optical brilliance and physical stability."}
+                  {settings.aboutFactoryDesc2 || "Every batch of Transparent LED Film undergoes a comprehensive battery of stress tests, including aging cycles and thermal calibration, ensuring long-term optical brilliance and physical stability under Indian weather conditions."}
                 </p>
               </div>
             </div>
@@ -168,14 +168,14 @@ export default function AboutView({ setCurrentTab, teamMembers, settings }: Abou
                     <Building2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Manufacturing Base</h3>
-                    <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">China HQ</p>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Engineering Base</h3>
+                    <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Chennai HQ</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl text-gray-300 font-sans leading-relaxed">
-                    <span className="text-[10px] text-red-500 font-mono uppercase tracking-wider block mb-1">Factory Address:</span>
+                    <span className="text-[10px] text-red-500 font-mono uppercase tracking-wider block mb-1">Corporate Address:</span>
                     <p className="whitespace-pre-line text-white text-xs">{settings.factoryAddress}</p>
                   </div>
                 </div>

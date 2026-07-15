@@ -181,8 +181,8 @@ export default function ProductsView({
 
   const generateAndDownloadPDF = (seriesName: string, docTitle: string, customLines: string[]) => {
     const dateStr = "July 2026";
-    const partnerStr = "Official Partner: Reefilm India (Chennai)";
-    const factoryStr = "China Factory: 3F, Building 2, Zhiying Science Park, Dongguan, China";
+    const partnerStr = "Reefilm India Headquarters";
+    const factoryStr = "Corporate Office: Chennai Tech Hub, OMR, Chennai, India";
     const contactStr = "Support: razzg946@gmail.com | +91 8577917327";
 
     // Build PDF stream content lines

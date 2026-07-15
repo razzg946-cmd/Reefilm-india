@@ -199,6 +199,18 @@ export default function GalleryView({ galleryItems }: GalleryViewProps) {
                   {/* Core Technical Specifications Table */}
                   <div className="border-t border-white/5 pt-4">
                     <div className="bg-black/40 border border-white/5 rounded-xl overflow-hidden text-[10px] font-mono text-gray-400 divide-y divide-white/5">
+                      {selectedItem.client && (
+                        <div className="p-3 flex justify-between items-center">
+                          <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-red-500" /> Client Partner</span>
+                          <span className="text-white font-bold">{selectedItem.client}</span>
+                        </div>
+                      )}
+                      {selectedItem.timeline && (
+                        <div className="p-3 flex justify-between items-center">
+                          <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-red-500" /> Installation Timeline</span>
+                          <span className="text-white font-bold">{selectedItem.timeline}</span>
+                        </div>
+                      )}
                       <div className="p-3 flex justify-between items-center">
                         <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-red-500" /> Glass Layout</span>
                         <span className="text-white font-bold">{selectedItem.specs.layers}</span>

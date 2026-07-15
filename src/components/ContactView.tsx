@@ -116,12 +116,12 @@ Premium LED Display Solutions Across India`;
             <Award className="w-10 h-10 text-red-500 shrink-0" />
             <div className="space-y-1">
               <p className="text-xs font-mono font-bold text-red-500 uppercase tracking-widest">
-                IMPORTANT BUSINESS COOPERATION MESSAGE
+                IMPORTANT BUSINESS MESSAGE
               </p>
               <p className="text-xs text-gray-300 leading-relaxed">
-                <strong>Manufacturing:</strong> Premium Partner Foundries • 
-                <strong> Sales, Installation, Technical Support & Customer Service:</strong> Reefilm India – Chennai. 
-                Reefilm India is the official Indian partner of REEFILM China, delivering advanced LED display solutions, installation, sales, and after-sales support throughout India spearheaded by Raj Gupta.
+                <strong>Manufacturing:</strong> Premium Certified Foundries • 
+                <strong> Sales, Installation, Technical Support & Customer Service:</strong> Reefilm India. 
+                Reefilm India stands as an independent Indian enterprise, delivering premium transparent LED display solutions, certified glass lamination, sales, and comprehensive technical support throughout India spearheaded by Raj Gupta.
               </p>
             </div>
           </div>
@@ -136,58 +136,16 @@ Premium LED Display Solutions Across India`;
             {/* Left Column: Two Corporate Offices */}
             <div className="lg:col-span-5 space-y-6">
               
-              {/* Office 1: Reefilm China */}
-              <div className="border border-white/10 bg-neutral-950 p-6 rounded-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/5 rounded-bl-full pointer-events-none transition-all group-hover:bg-red-600/10" />
-                <span className="text-[9px] font-mono bg-red-600/20 text-red-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                  Manufacturer
-                </span>
-                <h3 className="text-base font-black text-white mt-3 uppercase tracking-wider">
-                  Reefilm China
-                </h3>
-                <p className="text-xs text-gray-400 font-medium">Global Manufacturing Headquarters</p>
-                
-                <div className="mt-5 space-y-3 text-xs text-gray-300 font-mono">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>Founder: <strong className="text-white">{COMPANY_INFO.chinaOffice.founder}</strong></span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>Sales Contact: <strong className="text-white">{COMPANY_INFO.chinaOffice.contactPerson}</strong></span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <a href={`mailto:${COMPANY_INFO.chinaOffice.email}`} className="hover:text-red-400 transition-colors">
-                      {COMPANY_INFO.chinaOffice.email}
-                    </a>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Globe className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <a href={`https://${COMPANY_INFO.chinaOffice.website}`} target="_blank" rel="noopener noreferrer" className="hover:text-red-400 transition-colors">
-                      {COMPANY_INFO.chinaOffice.website}
-                    </a>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                    <span className="text-gray-400 leading-relaxed font-sans text-[11px]">
-                      <strong>Factory Address:</strong><br />
-                      {COMPANY_INFO.chinaOffice.address}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Office 2: Reefilm India */}
+              {/* Office: Reefilm India Headquarters */}
               <div className="border border-emerald-500/10 bg-neutral-950 p-6 rounded-2xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 rounded-bl-full pointer-events-none transition-all group-hover:bg-emerald-600/10" />
                 <span className="text-[9px] font-mono bg-emerald-600/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                  Authorized National Partner
+                  Independent Indian Enterprise
                 </span>
                 <h3 className="text-base font-black text-white mt-3 uppercase tracking-wider">
-                  Reefilm India
+                  Reefilm India Headquarters
                 </h3>
-                <p className="text-xs text-emerald-400 font-medium">Authorized Sales, Installation & Technical Support Partner</p>
+                <p className="text-xs text-emerald-400 font-medium">Premium Transparent LED Film Solutions Across India</p>
 
                 <div className="mt-5 space-y-3 text-xs text-gray-300 font-mono">
                   <div className="flex items-center space-x-2">

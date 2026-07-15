@@ -24,32 +24,43 @@ async function safeFetch<T>(tableName: string, defaultData: T[]): Promise<T[] | 
   }
 }
 
+// Helper to execute secure backend synchronization bypassing public anon key write restrictions
+async function secureServerSync(tableName: string, data: any): Promise<boolean> {
+  const sessionObj = localStorage.getItem("reefilm_admin_session");
+  if (!sessionObj) {
+    console.warn(`Attempted to sync table '${tableName}' without an active admin session.`);
+    return false;
+  }
+  try {
+    const { token } = JSON.parse(sessionObj);
+    const response = await fetch(`/api/cms/sync/${tableName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      console.error(`Secure server sync for table '${tableName}' failed:`, errData.message || response.statusText);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`Exception during secure server sync for table '${tableName}':`, err);
+    return false;
+  }
+}
+
 // 1. PRODUCTS
 export async function fetchProducts(defaultData: Product[]): Promise<Product[] | null> {
   return safeFetch<Product>("products", defaultData);
 }
 
 export async function syncProducts(products: Product[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = products.map((p) => p.id);
-    if (ids.length > 0) {
-      // Delete any items from Supabase that are not in the current list
-      await supabase.from("products").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("products").delete().neq("id", "");
-    }
-    
-    if (products.length > 0) {
-      const { error } = await supabase.from("products").upsert(products);
-      if (error) console.warn("Supabase products upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing products:", err);
-  }
+  await secureServerSync("products", products);
 }
 
 // 2. PROJECTS
@@ -58,25 +69,7 @@ export async function fetchProjects(defaultData: Project[]): Promise<Project[] |
 }
 
 export async function syncProjects(projects: Project[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = projects.map((p) => p.id);
-    if (ids.length > 0) {
-      await supabase.from("projects").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("projects").delete().neq("id", "");
-    }
-
-    if (projects.length > 0) {
-      const { error } = await supabase.from("projects").upsert(projects);
-      if (error) console.warn("Supabase projects upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing projects:", err);
-  }
+  await secureServerSync("projects", projects);
 }
 
 // 3. BLOG POSTS
@@ -85,25 +78,7 @@ export async function fetchBlogs(defaultData: BlogPost[]): Promise<BlogPost[] | 
 }
 
 export async function syncBlogs(blogs: BlogPost[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = blogs.map((b) => b.id);
-    if (ids.length > 0) {
-      await supabase.from("blogs").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("blogs").delete().neq("id", "");
-    }
-
-    if (blogs.length > 0) {
-      const { error } = await supabase.from("blogs").upsert(blogs);
-      if (error) console.warn("Supabase blogs upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing blogs:", err);
-  }
+  await secureServerSync("blogs", blogs);
 }
 
 // 4. DOWNLOADS / RESOURCES
@@ -112,25 +87,7 @@ export async function fetchDownloads(defaultData: ResourceDoc[]): Promise<Resour
 }
 
 export async function syncDownloads(downloads: ResourceDoc[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = downloads.map((d) => d.id);
-    if (ids.length > 0) {
-      await supabase.from("downloads").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("downloads").delete().neq("id", "");
-    }
-
-    if (downloads.length > 0) {
-      const { error } = await supabase.from("downloads").upsert(downloads);
-      if (error) console.warn("Supabase downloads upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing downloads:", err);
-  }
+  await secureServerSync("downloads", downloads);
 }
 
 // 5. TESTIMONIALS
@@ -139,52 +96,24 @@ export async function fetchTestimonials(defaultData: Testimonial[]): Promise<Tes
 }
 
 export async function syncTestimonials(testimonials: Testimonial[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = testimonials.map((t) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("testimonials").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("testimonials").delete().neq("id", "");
-    }
-
-    if (testimonials.length > 0) {
-      const { error } = await supabase.from("testimonials").upsert(testimonials);
-      if (error) console.warn("Supabase testimonials upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing testimonials:", err);
-  }
+  await secureServerSync("testimonials", testimonials);
 }
 
 // 6. GALLERY ITEMS
 export async function fetchGallery(defaultData: GalleryItem[]): Promise<GalleryItem[] | null> {
-  return safeFetch<GalleryItem>("gallery", defaultData);
+  const data = await safeFetch<GalleryItem>("gallery", defaultData);
+  if (data) {
+    return data.map(item => ({
+      ...item,
+      imageUrl: item.imageUrl || (item as any).image_url || "",
+      videoUrl: item.videoUrl || (item as any).video_url || ""
+    }));
+  }
+  return data;
 }
 
 export async function syncGallery(gallery: GalleryItem[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = gallery.map((g) => g.id);
-    if (ids.length > 0) {
-      await supabase.from("gallery").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("gallery").delete().neq("id", "");
-    }
-
-    if (gallery.length > 0) {
-      const { error } = await supabase.from("gallery").upsert(gallery);
-      if (error) console.warn("Supabase gallery upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing gallery:", err);
-  }
+  await secureServerSync("gallery", gallery);
 }
 
 // 7. TEAM MEMBERS
@@ -193,25 +122,7 @@ export async function fetchTeam(defaultData: TeamMember[]): Promise<TeamMember[]
 }
 
 export async function syncTeam(team: TeamMember[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = team.map((t) => t.id);
-    if (ids.length > 0) {
-      await supabase.from("team").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("team").delete().neq("id", "");
-    }
-
-    if (team.length > 0) {
-      const { error } = await supabase.from("team").upsert(team);
-      if (error) console.warn("Supabase team upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing team:", err);
-  }
+  await secureServerSync("team", team);
 }
 
 // 8. WEBSITE SETTINGS
@@ -243,18 +154,7 @@ export async function fetchSettings(defaultData: WebsiteSettings): Promise<Websi
 }
 
 export async function syncSettings(settings: WebsiteSettings): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const { error } = await supabase
-      .from("settings")
-      .upsert({ id: "website_settings", ...settings });
-    if (error) console.warn("Supabase settings upsert warning:", error.message);
-  } catch (err) {
-    console.error("Exception syncing settings:", err);
-  }
+  await secureServerSync("settings", settings);
 }
 
 // 9. ADMIN USERS
@@ -263,25 +163,7 @@ export async function fetchAdminUsers(defaultData: AdminUser[]): Promise<AdminUs
 }
 
 export async function syncAdminUsers(adminUsers: AdminUser[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = adminUsers.map((u) => u.id);
-    if (ids.length > 0) {
-      await supabase.from("admin_users").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("admin_users").delete().neq("id", "");
-    }
-
-    if (adminUsers.length > 0) {
-      const { error } = await supabase.from("admin_users").upsert(adminUsers);
-      if (error) console.warn("Supabase admin_users upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing admin_users:", err);
-  }
+  await secureServerSync("admin_users", adminUsers);
 }
 
 // 10. LEADS
@@ -290,40 +172,18 @@ export async function fetchLeads(defaultData: LeadInquiry[]): Promise<LeadInquir
 }
 
 export async function syncLeads(leads: LeadInquiry[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = leads.map((l) => l.id);
-    if (ids.length > 0) {
-      await supabase.from("leads").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("leads").delete().neq("id", "");
-    }
-
-    if (leads.length > 0) {
-      const { error } = await supabase.from("leads").upsert(leads);
-      if (error) console.warn("Supabase leads upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing leads:", err);
-  }
+  await secureServerSync("leads", leads);
 }
 
 // Single lead addition helper
 export async function addLeadToSupabase(lead: LeadInquiry): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-  const supabase = getSupabaseClient();
-  if (!supabase) return false;
-
   try {
-    const { error } = await supabase.from("leads").insert([lead]);
-    if (error) {
-      console.warn("Could not insert lead directly to Supabase table 'leads':", error.message);
-      return false;
-    }
-    return true;
+    const response = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead)
+    });
+    return response.ok;
   } catch (err) {
     console.error("Exception adding lead to Supabase:", err);
     return false;
@@ -336,23 +196,5 @@ export async function fetchApplications(defaultData: ApplicationItem[]): Promise
 }
 
 export async function syncApplications(applications: ApplicationItem[]): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  try {
-    const ids = applications.map((a) => a.id);
-    if (ids.length > 0) {
-      await supabase.from("applications").delete().not("id", "in", `(${ids.join(",")})`);
-    } else {
-      await supabase.from("applications").delete().neq("id", "");
-    }
-
-    if (applications.length > 0) {
-      const { error } = await supabase.from("applications").upsert(applications);
-      if (error) console.warn("Supabase applications upsert warning:", error.message);
-    }
-  } catch (err) {
-    console.error("Exception syncing applications:", err);
-  }
+  await secureServerSync("applications", applications);
 }

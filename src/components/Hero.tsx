@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, ShieldCheck, Zap, Sliders, Eye, Sun, Play, Layers } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { motion } from "motion/react";
 import { WebsiteSettings } from "../types";
 
@@ -143,9 +144,22 @@ export default function Hero({ setCurrentTab, settings }: HeroProps) {
           {/* Headline and Copy */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             {/* Status pill */}
-            <div className="inline-block px-3.5 py-1 bg-[#E30613]/15 border border-[#E30613]/50 rounded text-[10px] font-bold uppercase tracking-wider text-[#FF5F6D] mb-2">
-              {settings.homeHeroBanner || "Official Indian Partner of REEFILM China"}
-            </div>
+            {settings.showHeroBadge !== false && (
+              <div 
+                style={{ borderColor: settings.heroBadgeBorder || "rgba(227, 6, 19, 0.5)" }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#E30613]/15 border rounded text-[10px] font-bold uppercase tracking-wider mb-2"
+              >
+                {(() => {
+                  const iconName = settings.heroBadgeIcon || "ShieldCheck";
+                  // @ts-ignore
+                  const ResolvedIcon = LucideIcons[iconName] || LucideIcons.ShieldCheck;
+                  return ResolvedIcon ? <ResolvedIcon className="w-3.5 h-3.5 shrink-0" style={{ color: settings.heroBadgeColor || "#FF5F6D" }} /> : null;
+                })()}
+                <span style={{ color: settings.heroBadgeColor || "#FF5F6D" }}>
+                  {settings.homeHeroBanner || "Independent Leader in Transparent LED Film Displays"}
+                </span>
+              </div>
+            )}
 
             {/* Giant Title */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight font-display text-white">
